@@ -1,0 +1,60 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cloudcommerce-dev
+
+resources:
+  - ../../base
+
+namePrefix: dev-
+
+commonLabels:
+  environment: development
+
+# Patch replica counts down for dev
+patches:
+  - target:
+      kind: Deployment
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 1
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 1
+      - op: replace
+        path: /spec/maxReplicas
+        value: 2
+
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    literals:
+      - NODE_ENV=development
+      - CORS_ORIGIN=http://localhost:5173
+
+images:
+  - name: cloudcommerceacr.azurecr.io/api-gateway
+    newName: cloudcommercedevcr.azurecr.io/api-gateway
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/user-service
+    newName: cloudcommercedevcr.azurecr.io/user-service
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/product-service
+    newName: cloudcommercedevcr.azurecr.io/product-service
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/cart-service
+    newName: cloudcommercedevcr.azurecr.io/cart-service
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/order-service
+    newName: cloudcommercedevcr.azurecr.io/order-service
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/notification-service
+    newName: cloudcommercedevcr.azurecr.io/notification-service
+    newTag: dev-latest
+  - name: cloudcommerceacr.azurecr.io/frontend
+    newName: cloudcommercedevcr.azurecr.io/frontend
+    newTag: dev-latest

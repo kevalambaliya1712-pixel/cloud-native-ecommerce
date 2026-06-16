@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudcommerce
+  labels:
+    app.kubernetes.io/part-of: cloudcommerce
+    environment: production

@@ -1,0 +1,59 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cloudcommerce-staging
+
+resources:
+  - ../../base
+
+namePrefix: stg-
+
+commonLabels:
+  environment: staging
+
+patches:
+  - target:
+      kind: Deployment
+    patch: |
+      - op: replace
+        path: /spec/replicas
+        value: 2
+  - target:
+      kind: HorizontalPodAutoscaler
+    patch: |
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 4
+
+configMapGenerator:
+  - name: app-config
+    behavior: merge
+    literals:
+      - NODE_ENV=staging
+      - CORS_ORIGIN=https://staging.cloudcommerce.example.com
+
+images:
+  - name: cloudcommerceacr.azurecr.io/api-gateway
+    newName: cloudcommercestgcr.azurecr.io/api-gateway
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/user-service
+    newName: cloudcommercestgcr.azurecr.io/user-service
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/product-service
+    newName: cloudcommercestgcr.azurecr.io/product-service
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/cart-service
+    newName: cloudcommercestgcr.azurecr.io/cart-service
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/order-service
+    newName: cloudcommercestgcr.azurecr.io/order-service
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/notification-service
+    newName: cloudcommercestgcr.azurecr.io/notification-service
+    newTag: staging-latest
+  - name: cloudcommerceacr.azurecr.io/frontend
+    newName: cloudcommercestgcr.azurecr.io/frontend
+    newTag: staging-latest

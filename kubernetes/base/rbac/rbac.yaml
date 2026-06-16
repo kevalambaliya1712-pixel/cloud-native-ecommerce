@@ -1,0 +1,66 @@
+# =============================================================================
+# RBAC — Principle of Least Privilege
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloudcommerce-sa
+  namespace: cloudcommerce
+  labels:
+    app.kubernetes.io/part-of: cloudcommerce
+  annotations:
+    azure.workload.identity/client-id: ""  # Set via Kustomize overlay
+---
+# Role for backend services — can read configmaps and secrets in namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cloudcommerce-backend-role
+  namespace: cloudcommerce
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cloudcommerce-backend-binding
+  namespace: cloudcommerce
+subjects:
+  - kind: ServiceAccount
+    name: cloudcommerce-sa
+    namespace: cloudcommerce
+roleRef:
+  kind: Role
+  name: cloudcommerce-backend-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# ClusterRole for Prometheus metrics scraping
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cloudcommerce-metrics-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "nodes", "services", "endpoints"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["pods", "nodes"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cloudcommerce-metrics-binding
+subjects:
+  - kind: ServiceAccount
+    name: cloudcommerce-sa
+    namespace: cloudcommerce
+roleRef:
+  kind: ClusterRole
+  name: cloudcommerce-metrics-reader
+  apiGroup: rbac.authorization.k8s.io

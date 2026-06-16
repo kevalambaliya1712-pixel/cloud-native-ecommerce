@@ -1,0 +1,218 @@
+# =============================================================================
+# Grafana — Dashboards & Visualization
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-dashboards-config
+  namespace: cloudcommerce
+data:
+  dashboards.yaml: |
+    apiVersion: 1
+    providers:
+      - name: "default"
+        orgId: 1
+        folder: "CloudCommerce"
+        type: file
+        options:
+          path: /var/lib/grafana/dashboards
+          foldersFromFilesStructure: true
+
+  datasources.yaml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.cloudcommerce.svc:9090
+        isDefault: true
+        editable: false
+
+  cloudcommerce-overview.json: |
+    {
+      "dashboard": {
+        "title": "CloudCommerce — Platform Overview",
+        "tags": ["cloudcommerce", "overview"],
+        "timezone": "browser",
+        "refresh": "30s",
+        "panels": [
+          {
+            "title": "Request Rate by Service",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total[5m])) by (service)",
+                "legendFormat": "{{ service }}"
+              }
+            ]
+          },
+          {
+            "title": "Error Rate by Service",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+            "targets": [
+              {
+                "expr": "sum(rate(http_requests_total{status=~\"5..\"}[5m])) by (service) / sum(rate(http_requests_total[5m])) by (service) * 100",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "thresholds": {
+                  "steps": [
+                    { "value": 0, "color": "green" },
+                    { "value": 1, "color": "yellow" },
+                    { "value": 5, "color": "red" }
+                  ]
+                },
+                "unit": "percent"
+              }
+            }
+          },
+          {
+            "title": "P99 Latency by Service",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+            "targets": [
+              {
+                "expr": "histogram_quantile(0.99, sum(rate(http_request_duration_seconds_bucket[5m])) by (le, service))",
+                "legendFormat": "{{ service }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": { "unit": "s" }
+            }
+          },
+          {
+            "title": "Pod CPU Usage",
+            "type": "timeseries",
+            "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+            "targets": [
+              {
+                "expr": "sum(rate(container_cpu_usage_seconds_total{namespace=\"cloudcommerce\"}[5m])) by (container)",
+                "legendFormat": "{{ container }}"
+              }
+            ]
+          },
+          {
+            "title": "Pod Memory Usage",
+            "type": "gauge",
+            "gridPos": { "h": 8, "w": 24, "x": 0, "y": 16 },
+            "targets": [
+              {
+                "expr": "container_memory_working_set_bytes{namespace=\"cloudcommerce\"} / container_spec_memory_limit_bytes{namespace=\"cloudcommerce\"} * 100",
+                "legendFormat": "{{ container }}"
+              }
+            ],
+            "fieldConfig": {
+              "defaults": {
+                "unit": "percent",
+                "thresholds": {
+                  "steps": [
+                    { "value": 0, "color": "green" },
+                    { "value": 70, "color": "yellow" },
+                    { "value": 85, "color": "red" }
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "title": "Active Pods by Deployment",
+            "type": "stat",
+            "gridPos": { "h": 4, "w": 24, "x": 0, "y": 24 },
+            "targets": [
+              {
+                "expr": "kube_deployment_status_replicas_available{namespace=\"cloudcommerce\"}",
+                "legendFormat": "{{ deployment }}"
+              }
+            ]
+          }
+        ]
+      }
+    }
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: cloudcommerce
+  labels:
+    app: grafana
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      containers:
+        - name: grafana
+          image: grafana/grafana:10.3.0
+          ports:
+            - containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: cloudcommerce-secrets
+                  key: GRAFANA_ADMIN_PASSWORD
+                  optional: true
+            - name: GF_SERVER_ROOT_URL
+              value: "https://grafana.cloudcommerce.example.com"
+          volumeMounts:
+            - name: dashboards-config
+              mountPath: /etc/grafana/provisioning/dashboards
+              subPath: dashboards.yaml
+            - name: dashboards-config
+              mountPath: /etc/grafana/provisioning/datasources
+              subPath: datasources.yaml
+            - name: dashboards-config
+              mountPath: /var/lib/grafana/dashboards/cloudcommerce-overview.json
+              subPath: cloudcommerce-overview.json
+            - name: storage
+              mountPath: /var/lib/grafana
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi
+      volumes:
+        - name: dashboards-config
+          configMap:
+            name: grafana-dashboards-config
+        - name: storage
+          persistentVolumeClaim:
+            claimName: grafana-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: cloudcommerce
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+  selector:
+    app: grafana
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-pvc
+  namespace: cloudcommerce
+spec:
+  accessModes:
+    - ReadWriteOnce
+  storageClassName: managed-premium
+  resources:
+    requests:
+      storage: 10Gi

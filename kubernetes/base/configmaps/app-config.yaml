@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+  namespace: cloudcommerce
+  labels:
+    app.kubernetes.io/part-of: cloudcommerce
+data:
+  # Service Discovery (K8s internal DNS)
+  USER_SERVICE_URL: "http://user-service.cloudcommerce.svc.cluster.local:3001"
+  PRODUCT_SERVICE_URL: "http://product-service.cloudcommerce.svc.cluster.local:3002"
+  CART_SERVICE_URL: "http://cart-service.cloudcommerce.svc.cluster.local:3003"
+  ORDER_SERVICE_URL: "http://order-service.cloudcommerce.svc.cluster.local:3004"
+  NOTIFICATION_SERVICE_URL: "http://notification-service.cloudcommerce.svc.cluster.local:3005"
+  NODE_ENV: "production"
+  CORS_ORIGIN: "https://cloudcommerce.azurefd.net"

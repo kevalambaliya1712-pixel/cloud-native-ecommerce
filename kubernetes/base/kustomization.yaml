@@ -1,0 +1,38 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: cloudcommerce
+
+resources:
+  # Namespace
+  - namespaces/cloudcommerce.yaml
+
+  # Configuration
+  - configmaps/app-config.yaml
+  - secrets/external-secrets.yaml
+
+  # RBAC
+  - rbac/rbac.yaml
+
+  # Services
+  - services/api-gateway/deployment.yaml
+  - services/api-gateway/service.yaml
+  - services/api-gateway/hpa.yaml
+  - services/api-gateway/pdb.yaml
+  - services/user-service/deployment.yaml
+  - services/user-service/service.yaml
+  - services/product-service/deployment.yaml
+  - services/cart-service/deployment.yaml
+  - services/order-service/deployment.yaml
+  - services/notification-service/deployment.yaml
+  - services/frontend/deployment.yaml
+
+  # Ingress
+  - ingress/ingress.yaml
+
+  # Network Policies
+  - network-policies/network-policies.yaml
+
+commonLabels:
+  app.kubernetes.io/managed-by: kustomize
+  app.kubernetes.io/version: "1.0.0"

@@ -1,0 +1,84 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - USER_SERVICE_URL=http://user-service:3001
+      - PRODUCT_SERVICE_URL=http://product-service:3002
+      - CART_SERVICE_URL=http://cart-service:3003
+      - ORDER_SERVICE_URL=http://order-service:3004
+      - JWT_SECRET=super-secret-key-change-in-prod
+    depends_on:
+      - user-service
+      - product-service
+      - cart-service
+      - order-service
+
+  user-service:
+    build: ./services/user-service
+    ports:
+      - "3001:3001"
+    environment:
+      - PORT=3001
+      - DATABASE_URL=/app/users.sqlite
+      - JWT_SECRET=super-secret-key-change-in-prod
+    volumes:
+      - user-db-data:/app
+
+  product-service:
+    build: ./services/product-service
+    ports:
+      - "3002:3002"
+    environment:
+      - PORT=3002
+      - DATABASE_URL=/app/products.sqlite
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    volumes:
+      - product-db-data:/app
+
+  cart-service:
+    build: ./services/cart-service
+    ports:
+      - "3003:3003"
+    environment:
+      - PORT=3003
+      - DATABASE_URL=/app/carts.sqlite
+    volumes:
+      - cart-db-data:/app
+
+  order-service:
+    build: ./services/order-service
+    ports:
+      - "3004:3004"
+    environment:
+      - PORT=3004
+      - DATABASE_URL=/app/orders.sqlite
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3005
+    depends_on:
+      - notification-service
+    volumes:
+      - order-db-data:/app
+
+  notification-service:
+    build: ./services/notification-service
+    ports:
+      - "3005:3005"
+    environment:
+      - PORT=3005
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - api-gateway
+
+volumes:
+  user-db-data:
+  product-db-data:
+  cart-db-data:
+  order-db-data:

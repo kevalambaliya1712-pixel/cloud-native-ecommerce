@@ -4,9 +4,10 @@
  */
 
 import React from 'react';
-import { SlidersHorizontal, Grid, List, Sparkles, Server, Search, HelpCircle, HardDrive } from 'lucide-react';
+import { SlidersHorizontal, Grid, Star, TrendingUp, Zap, Search } from 'lucide-react';
 import { Product } from '../types';
 import { ProductCard } from './ProductCard';
+
 interface ShopAllViewProps {
   products: Product[];
   onViewProduct: (product: Product) => void;
@@ -16,283 +17,299 @@ interface ShopAllViewProps {
   searchQuery: string;
 }
 
+const allCategories = [
+  { name: 'All', id: null, icon: '🛍️' },
+  { name: 'Electronics', id: 'Electronics', icon: '📱' },
+  { name: 'Fashion', id: 'Fashion', icon: '👕' },
+  { name: 'Home & Kitchen', id: 'Home & Kitchen', icon: '🏠' },
+  { name: 'Sports', id: 'Sports', icon: '⚽' },
+  { name: 'Beauty', id: 'Beauty', icon: '✨' },
+  { name: 'Books', id: 'Books', icon: '📚' },
+  { name: 'Toys', id: 'Toys', icon: '🧸' },
+  { name: 'Grocery', id: 'Grocery', icon: '🛒' },
+];
+
 export function ShopAllView({
-  products,
-  onViewProduct,
-  onQuickAdd,
-  filterCategory,
-  setFilterCategory,
-  searchQuery
+  products, onViewProduct, onQuickAdd, filterCategory, setFilterCategory, searchQuery
 }: ShopAllViewProps) {
   const [sortOption, setSortOption] = React.useState('featured');
-  const [maxPrice, setMaxPrice] = React.useState(500);
-  const [showOnlyAzure, setShowOnlyAzure] = React.useState(false);
-  const [viewMode, setViewMode] = React.useState<'grid' | 'list'>('grid');
+  const [maxPrice, setMaxPrice] = React.useState(2000);
+  const [showFilters, setShowFilters] = React.useState(true);
 
-  // Available categories
-  const categories = [
-    { name: 'All Resources', id: null },
-    { name: 'Compute & VM', id: 'Compute & VM' },
-    { name: 'Data & Storage', id: 'Data & Storage' },
-    { name: 'IoT DevKit', id: 'IoT DevKit' },
-    { name: 'Apparel & Gear', id: 'Apparel & Gear' },
-    { name: 'Smart Workspace', id: 'Smart Workspace' }
-  ];
-
-  // Filtering products
   const filteredProducts = React.useMemo(() => {
     return products.filter((prod) => {
-      // 1. Category Filter
       if (filterCategory && prod.category !== filterCategory) return false;
-      // 2. Search query
       if (searchQuery) {
-        const query = searchQuery.toLowerCase();
-        const nameMatch = prod.name.toLowerCase().includes(query);
-        const descMatch = prod.description.toLowerCase().includes(query);
-        const skuMatch = prod.sku.toLowerCase().includes(query);
-        const catMatch = prod.category.toLowerCase().includes(query);
-        if (!nameMatch && !descMatch && !skuMatch && !catMatch) return false;
+        const q = searchQuery.toLowerCase();
+        if (!prod.name.toLowerCase().includes(q) && !prod.description.toLowerCase().includes(q) &&
+            !prod.brand.toLowerCase().includes(q) && !prod.category.toLowerCase().includes(q)) return false;
       }
-      // 3. Price Filter (VM configurations can exceed 500, let's keep VM price filtering flexible)
       if (prod.price > maxPrice) return false;
-      // 4. Azure filter
-      if (showOnlyAzure && !prod.isAzureResource) return false;
-
       return true;
     });
-  }, [filterCategory, searchQuery, maxPrice, showOnlyAzure]);
+  }, [products, filterCategory, searchQuery, maxPrice]);
 
-  // Sorting products
   const sortedProducts = React.useMemo(() => {
     const list = [...filteredProducts];
-    if (sortOption === 'price-asc') {
-      list.sort((a, b) => a.price - b.price);
-    } else if (sortOption === 'price-desc') {
-      list.sort((a, b) => b.price - a.price);
-    } else if (sortOption === 'rating') {
-      list.sort((a, b) => b.rating - a.rating);
-    } // 'featured' keeps original ordering
+    if (sortOption === 'price-asc') list.sort((a, b) => a.price - b.price);
+    else if (sortOption === 'price-desc') list.sort((a, b) => b.price - a.price);
+    else if (sortOption === 'rating') list.sort((a, b) => b.rating - a.rating);
+    else if (sortOption === 'newest') list.sort((a, b) => b.ratingCount - a.ratingCount);
     return list;
   }, [filteredProducts, sortOption]);
 
+  // Get top deals for hero section
+  const topDeals = products.filter(p => p.originalPrice && p.originalPrice > p.price).slice(0, 6);
+
   return (
-    <div id="shop-all-view" className="bg-slate-50/50 pb-20">
-      
-      {/* 1. HERO BANNER RECREATION */}
-      <div id="shop-hero-banner" className="relative mx-auto mt-6 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="relative overflow-hidden rounded-3xl bg-slate-900 px-8 py-16 text-white sm:px-16 lg:py-20 shadow-xl shadow-slate-900/10">
-          
-          {/* Accent circles and grid */}
-          <div className="absolute right-0 top-0 h-full w-1/2 opacity-20 bg-[linear-gradient(to_right,#3b82f6_1px,transparent_1px),linear-gradient(to_bottom,#3b82f6_1px,transparent_1px)] bg-[size:32px_32px]" />
-          <div className="absolute right-10 top-1/2 h-72 w-72 -translate-y-1/2 rounded-full bg-blue-500/20 blur-3xl" />
-          
-          <div className="relative z-10 max-w-xl">
-            <span id="hero-badge" className="inline-flex items-center space-x-1 rounded-full bg-blue-500/20 px-3 py-1 text-xs font-semibold text-blue-300">
-              <Sparkles className="h-3 text-amber-400" />
-              <span>Fall Deployment Collection '26</span>
-            </span>
-            <h1 id="hero-title" className="mt-4 font-sans text-3xl font-extrabold tracking-tight sm:text-5xl">
-              Azure Architecture &amp; Workspace Gear.
-            </h1>
-            <p id="hero-subtitle" className="mt-4 text-sm text-slate-300 leading-relaxed sm:text-base">
-              Elevate your cloud operations. Purchase certified high-fidelity virtual machine clusters, cosmos configurations, or hand-crafted workspace physical apparel optimized for telemetry.
-            </p>
-            <div id="hero-actions" className="mt-8 flex flex-wrap gap-4">
-              <button 
-                id="hero-primary-cta"
-                onClick={() => setFilterCategory('Compute & VM')}
-                className="rounded-full bg-blue-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/30 transition hover:bg-blue-500 hover:shadow-blue-500/30"
-              >
-                Provision Compute Nodes
-              </button>
-              <button 
-                id="hero-secondary-cta"
-                onClick={() => setFilterCategory('IoT DevKit')}
-                className="rounded-full bg-slate-800/80 px-6 py-3 text-xs font-bold text-slate-100 border border-slate-700/60 transition hover:bg-slate-700"
-              >
-                Assemble IoT Bundles
-              </button>
-            </div>
-          </div>
-          
-          {/* FLOATING RETRO IMAGE (Chair mockup or representation) */}
-          <div className="absolute bottom-[-40px] right-8 hidden lg:block w-[360px] h-[360px] max-w-sm pointer-events-none">
-            <div className="relative flex h-full w-full items-center justify-center">
-              <img
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuAUIrT68Vdcc6J13lbQ02tL1jGBve83YknLAgQIeA7SiG0k_WB7YmU5_69zvk2GZxPQD2lIAlLYRNdNwuHzH5PWg5B6GBrTzzztSnP3-GBZ4PkUa6RfySEDvICjGlatEKtBNCGkurGcmMBeWHtv6f0B1_X501NW6UT5ja9bdZ6AvaEHheEV-x5RCWRxrQi4lhBvVv6lugpHmSPUN-ID28Zxm3s0zU0ZK5UFzda-bwP4D03V3GVm3-qUvkj8Hm6X8tY_z4yELzkEzlpY"
-                alt="Azure Minimal Chair Mockup"
-                referrerPolicy="no-referrer"
-                className="h-72 w-72 rounded-full object-cover border-4 border-slate-800/80 shadow-2xl drop-shadow-xl animate-bounce-slow"
-                style={{ animationDuration: '6s' }}
-              />
-            </div>
-          </div>
+    <div id="shop-all-view" style={{ background: 'var(--bg-primary)', minHeight: '100vh', paddingBottom: 40 }}>
 
+      {/* Hero Banner */}
+      {!filterCategory && !searchQuery && (
+        <div className="animate-fadeIn" style={{
+          background: 'linear-gradient(135deg, #1a237e 0%, #283593 30%, #3949ab 60%, #5c6bc0 100%)',
+          padding: '48px 0', marginBottom: 24
+        }}>
+          <div className="container" style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 24
+          }}>
+            <div style={{ maxWidth: 560 }}>
+              <div style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                background: 'rgba(255,255,255,0.15)', borderRadius: 20, padding: '6px 14px',
+                marginBottom: 16
+              }}>
+                <Zap size={14} color="#ffe500" />
+                <span style={{ color: '#ffe500', fontSize: 12, fontWeight: 700 }}>MEGA SALE LIVE NOW</span>
+              </div>
+              <h1 style={{
+                color: 'white', fontSize: 40, fontWeight: 800, lineHeight: 1.15,
+                letterSpacing: -0.5, marginBottom: 12
+              }}>
+                Shop the Best Deals on <span style={{ color: '#ffe500' }}>CloudKart</span>
+              </h1>
+              <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: 16, lineHeight: 1.6, marginBottom: 24 }}>
+                Discover millions of products from verified sellers. Free delivery, easy returns, and the best prices guaranteed.
+              </p>
+              <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setFilterCategory('Electronics')}
+                  className="btn btn-accent"
+                  style={{ padding: '12px 28px', borderRadius: 4, fontSize: 14 }}
+                >
+                  <TrendingUp size={16} /> Shop Electronics
+                </button>
+                <button
+                  onClick={() => setFilterCategory('Fashion')}
+                  className="btn"
+                  style={{
+                    padding: '12px 28px', borderRadius: 4, fontSize: 14,
+                    background: 'rgba(255,255,255,0.15)', color: 'white', border: '1px solid rgba(255,255,255,0.3)'
+                  }}
+                >
+                  Trending Fashion
+                </button>
+              </div>
+            </div>
+
+            {/* Deal Cards Mini */}
+            <div style={{
+              display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, maxWidth: 380
+            }}>
+              {topDeals.slice(0, 3).map(deal => (
+                <div
+                  key={deal.id}
+                  onClick={() => onViewProduct(deal)}
+                  style={{
+                    background: 'rgba(255,255,255,0.1)', borderRadius: 8, padding: 12,
+                    cursor: 'pointer', textAlign: 'center', backdropFilter: 'blur(8px)',
+                    border: '1px solid rgba(255,255,255,0.15)', transition: 'transform 0.2s'
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                >
+                  <img
+                    src={deal.image} alt={deal.name} referrerPolicy="no-referrer"
+                    style={{ width: 60, height: 60, objectFit: 'contain', marginBottom: 8 }}
+                  />
+                  <div style={{ color: '#ffe500', fontSize: 12, fontWeight: 700 }}>
+                    {Math.round(((deal.originalPrice! - deal.price) / deal.originalPrice!) * 100)}% OFF
+                  </div>
+                  <div style={{ color: 'rgba(255,255,255,0.7)', fontSize: 10, marginTop: 2 }}>
+                    From ${deal.price}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* 2. MAIN GRID AND FILTERS SECTION */}
-      <div id="shop-catalog-section" className="mx-auto mt-12 max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="flex flex-col lg:flex-row lg:gap-8">
-          
-          {/* LEFT FILTER SIDEBAR */}
-          <aside id="shop-filter-sidebar" className="w-full shrink-0 lg:w-64">
-            <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-              
-              <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                <h3 className="flex items-center space-x-2 text-sm font-bold text-slate-900">
-                  <SlidersHorizontal className="h-4 w-4 text-blue-600" />
-                  <span>Interactive Refiners</span>
+      {/* Category Strip */}
+      {!searchQuery && (
+        <div className="container" style={{ marginBottom: 20 }}>
+          <div style={{
+            display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4
+          }}>
+            {allCategories.map(cat => (
+              <button
+                key={cat.name}
+                onClick={() => setFilterCategory(cat.id)}
+                style={{
+                  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6,
+                  padding: '12px 20px', borderRadius: 8, border: 'none',
+                  background: filterCategory === cat.id ? 'var(--primary)' : 'white',
+                  color: filterCategory === cat.id ? 'white' : 'var(--text-primary)',
+                  cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, fontWeight: 600,
+                  minWidth: 90, boxShadow: 'var(--shadow-sm)', transition: 'all 0.2s',
+                  flexShrink: 0
+                }}
+              >
+                <span style={{ fontSize: 24 }}>{cat.icon}</span>
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Layout */}
+      <div className="container">
+        <div style={{ display: 'flex', gap: 20 }}>
+
+          {/* Sidebar Filters */}
+          <aside style={{
+            width: 240, flexShrink: 0, display: showFilters ? 'block' : 'none'
+          }}>
+            <div className="card" style={{ padding: 20, position: 'sticky', top: 130 }}>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                marginBottom: 20, paddingBottom: 12, borderBottom: '1px solid #f0f0f0'
+              }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <SlidersHorizontal size={16} color="var(--primary)" />
+                  Filters
                 </h3>
-                {(filterCategory || searchQuery || maxPrice < 500 || showOnlyAzure) && (
+                {(filterCategory || maxPrice < 2000) && (
                   <button
-                    id="clear-all-filters-btn"
-                    onClick={() => {
-                      setFilterCategory(null);
-                      setMaxPrice(500);
-                      setShowOnlyAzure(false);
+                    onClick={() => { setFilterCategory(null); setMaxPrice(2000); }}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--primary)',
+                      fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit'
                     }}
-                    className="text-[10px] font-bold uppercase text-rose-500 hover:underline"
                   >
-                    Reset
+                    CLEAR ALL
                   </button>
                 )}
               </div>
 
-              {/* REFINER: CATEGORIES */}
-              <div className="mt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Class Service</h4>
-                <div className="mt-3.5 space-y-2">
-                  {categories.map((cat) => (
+              {/* Price Range */}
+              <div style={{ marginBottom: 24 }}>
+                <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>
+                  Price Range
+                </h4>
+                <input
+                  type="range"
+                  min="10"
+                  max="2000"
+                  step="10"
+                  value={maxPrice}
+                  onChange={(e) => setMaxPrice(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--primary)' }}
+                />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  <span>$10</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)' }}>Up to ${maxPrice}</span>
+                </div>
+              </div>
+
+              {/* Category Filter */}
+              <div>
+                <h4 style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: 12 }}>
+                  Category
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {allCategories.map(cat => (
                     <button
                       key={cat.name}
                       onClick={() => setFilterCategory(cat.id)}
-                      className={`flex w-full items-center justify-between rounded-lg px-2.5 py-2 text-xs font-medium transition ${
-                        filterCategory === cat.id
-                          ? 'bg-blue-50 text-blue-700'
-                          : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950'
-                      }`}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        padding: '8px 10px', borderRadius: 6, border: 'none',
+                        background: filterCategory === cat.id ? 'var(--primary-light)' : 'transparent',
+                        color: filterCategory === cat.id ? 'var(--primary)' : 'var(--text-primary)',
+                        fontWeight: filterCategory === cat.id ? 700 : 500,
+                        cursor: 'pointer', fontFamily: 'inherit', fontSize: 13,
+                        textAlign: 'left', transition: 'background 0.15s'
+                      }}
                     >
-                      <span>{cat.name}</span>
-                      {filterCategory === cat.id && <span className="h-1.5 w-1.5 rounded-full bg-blue-600" />}
+                      <span>{cat.icon} {cat.name}</span>
+                      {filterCategory === cat.id && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--primary)' }} />}
                     </button>
                   ))}
                 </div>
               </div>
-
-              {/* REFINER: AZURE SPECIFIC INSTANCES (SWITCH) */}
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Deployable Logic</h4>
-                <label className="mt-4 flex cursor-pointer items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-700">Only Azure Resources</span>
-                  <input
-                    type="checkbox"
-                    checked={showOnlyAzure}
-                    onChange={(e) => setShowOnlyAzure(e.target.checked)}
-                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                  />
-                </label>
-              </div>
-
-              {/* REFINER: MAX PRICE RANGE SLIDER */}
-              <div className="mt-8 border-t border-slate-100 pt-6">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Price ceiling limit</h4>
-                <div className="mt-4">
-                  <input
-                    type="range"
-                    min="10"
-                    max="500"
-                    step="10"
-                    value={maxPrice}
-                    onChange={(e) => setMaxPrice(Number(e.target.value))}
-                    className="h-1.5 w-full cursor-pointer appearance-none rounded-lg bg-slate-200 accent-blue-600"
-                  />
-                  <div className="mt-2.5 flex items-center justify-between font-mono text-[10px] text-slate-500">
-                    <span>Min: $10</span>
-                    <span className="font-bold text-slate-900">Max: ${maxPrice}</span>
-                  </div>
-                </div>
-              </div>
-
             </div>
           </aside>
 
-          {/* MAIN PRODUCT LIST GRID */}
-          <main id="shop-products-main" className="flex-1 mt-8 lg:mt-0">
-            
-            {/* GRID CONTROLS HEADER */}
-            <div id="shop-grid-controls" className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-100 pb-5">
-              <div id="results-count">
-                <p className="text-xs font-semibold text-slate-500">
-                  Showing <span className="text-slate-900">{sortedProducts.length}</span> assets matching parameters
-                </p>
-              </div>
+          {/* Product Grid */}
+          <main style={{ flex: 1 }}>
+            {/* Toolbar */}
+            <div className="card" style={{
+              padding: '12px 20px', marginBottom: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+            }}>
+              <p style={{ fontSize: 13, fontWeight: 500, color: 'var(--text-secondary)' }}>
+                Showing <strong style={{ color: 'var(--text-primary)' }}>{sortedProducts.length}</strong> products
+                {filterCategory && <> in <strong style={{ color: 'var(--primary)' }}>{filterCategory}</strong></>}
+                {searchQuery && <> for "<strong style={{ color: 'var(--primary)' }}>{searchQuery}</strong>"</>}
+              </p>
 
-              <div id="controls-panel" className="flex items-center justify-between sm:justify-end gap-4">
-                
-                {/* SORT METHOD SELECTOR */}
-                <div id="sort-sel-box" className="flex items-center space-x-2">
-                  <span className="text-xs font-semibold text-slate-400">Sort:</span>
-                  <select
-                    id="sort-select"
-                    value={sortOption}
-                    onChange={(e) => setSortOption(e.target.value)}
-                    className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none transition focus:border-blue-500"
-                  >
-                    <option value="featured">Featured Registry</option>
-                    <option value="price-asc">Price: Low to High</option>
-                    <option value="price-desc">Price: High to Low</option>
-                    <option value="rating">Top Customer Rated</option>
-                  </select>
-                </div>
-
-                {/* LAYOUT SWAPPERS (Aesthetic decoration) */}
-                <div id="view-mode-toggles" className="hidden sm:flex items-center rounded-lg border border-slate-200 bg-white p-1">
-                  <button
-                    onClick={() => setViewMode('grid')}
-                    className={`rounded p-1 transition ${
-                      viewMode === 'grid' ? 'bg-slate-100 text-blue-600' : 'text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <Grid className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={() => setViewMode('list')}
-                    className={`rounded p-1 transition ${
-                      viewMode === 'list' ? 'bg-slate-100 text-blue-600' : 'text-slate-400 hover:text-slate-900'
-                    }`}
-                  >
-                    <List className="h-4 w-4" />
-                  </button>
-                </div>
-
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontWeight: 500 }}>Sort by:</span>
+                <select
+                  value={sortOption}
+                  onChange={(e) => setSortOption(e.target.value)}
+                  className="input"
+                  style={{ width: 'auto', padding: '6px 12px', fontSize: 13 }}
+                >
+                  <option value="featured">Relevance</option>
+                  <option value="price-asc">Price — Low to High</option>
+                  <option value="price-desc">Price — High to Low</option>
+                  <option value="rating">Customer Rating</option>
+                  <option value="newest">Popularity</option>
+                </select>
               </div>
             </div>
 
-            {/* DYNAMIC PRODUCTS FEED */}
+            {/* Product Grid */}
             {sortedProducts.length === 0 ? (
-              <div id="empty-state-card" className="mt-12 flex flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-white p-12 text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-50 text-slate-400">
-                  <Search className="h-6 w-6" />
+              <div className="card animate-fadeIn" style={{
+                padding: 60, textAlign: 'center', display: 'flex',
+                flexDirection: 'column', alignItems: 'center'
+              }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: '50%', background: '#f5f5f5',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16
+                }}>
+                  <Search size={28} color="#b0b0b0" />
                 </div>
-                <h3 className="mt-4 text-sm font-bold text-slate-950">No blueprints registered</h3>
-                <p className="mt-1 max-w-xs text-xs text-slate-500 leading-normal">
-                  No products or virtual architectures match your filter limits. Try clearing your search parameters or reducing refiner parameters!
+                <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8 }}>No products found</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-secondary)', maxWidth: 320, marginBottom: 20 }}>
+                  Try adjusting your filters or search query to find what you're looking for.
                 </p>
                 <button
-                  id="reset-filters-cta"
-                  onClick={() => {
-                    setFilterCategory(null);
-                    setMaxPrice(500);
-                    setShowOnlyAzure(false);
-                  }}
-                  className="mt-6 rounded-full bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-md transition hover:bg-blue-500"
+                  onClick={() => { setFilterCategory(null); setMaxPrice(2000); }}
+                  className="btn btn-primary"
                 >
-                  Show All Assets
+                  Clear All Filters
                 </button>
               </div>
             ) : (
-              <div id="catalog-grid" className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              <div style={{
+                display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(230px, 1fr))',
+                gap: 16
+              }}>
                 {sortedProducts.map((prod) => (
                   <ProductCard
                     key={prod.id}
@@ -303,12 +320,9 @@ export function ShopAllView({
                 ))}
               </div>
             )}
-
           </main>
-
         </div>
       </div>
-
     </div>
   );
 }

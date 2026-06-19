@@ -6,36 +6,27 @@
 export interface Product {
   id: string;
   name: string;
-  category: 'Compute & VM' | 'Data & Storage' | 'IoT DevKit' | 'Apparel & Gear' | 'Smart Workspace';
-  sku: string;
+  category: 'Electronics' | 'Fashion' | 'Home & Kitchen' | 'Sports' | 'Books' | 'Beauty' | 'Toys' | 'Grocery';
+  brand: string;
   description: string;
   price: number;
   originalPrice?: number;
   image: string;
-  thumbnails: string[];
+  images: string[];
   rating: number;
   ratingCount: number;
   badge?: string;
-  isAzureResource: boolean;
+  stock: number;
+  sellerId: string;
+  sellerName: string;
   specs: Record<string, string>;
   isOutOfStock?: boolean;
 }
 
-export interface CustomResourceConfig {
-  vCPUs: number;
-  ramGB: number;
-  storageGB: number;
-  region: string;
-  tier: 'Basic' | 'Standard' | 'Premium';
-  monthlyRate: number;
-}
-
 export interface CartItem {
-  id: string; // unique item id (composite of product.id + selected color or custom config to separate items)
+  id: string;
   product: Product;
   quantity: number;
-  selectedColor?: string;
-  customConfig?: CustomResourceConfig;
 }
 
 export interface Review {
@@ -56,6 +47,7 @@ export interface Order {
   tax: number;
   discount: number;
   total: number;
+  status: 'pending' | 'confirmed' | 'shipped' | 'delivered' | 'cancelled';
   date: string;
   email: string;
   shippingName: string;
@@ -63,6 +55,13 @@ export interface Order {
   shippingCity: string;
   shippingZip: string;
   paymentMethod: string;
-  armTemplate?: string;
-  cliScript?: string;
+}
+
+export interface Seller {
+  id: string;
+  name?: string;
+  storeName?: string;
+  storeDescription?: string;
+  isVerified: boolean;
+  createdAt: string;
 }

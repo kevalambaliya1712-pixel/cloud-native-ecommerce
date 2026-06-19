@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Server, ShieldCheck, RefreshCw, Send, CheckCircle2 } from 'lucide-react';
+import { Truck, ShieldCheck, RefreshCw, Send, CheckCircle2 } from 'lucide-react';
 
 interface FooterProps {
   setActiveTab: (tab: string) => void;
@@ -38,11 +38,11 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
           
           <div id="perk-1" className="flex items-start space-x-3.5">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-slate-800 text-blue-400">
-              <Server className="h-5 w-5" />
+              <Truck className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-sans text-sm font-semibold text-slate-100">Hybrid Azure Integration</h4>
-              <p className="mt-1 text-xs text-slate-400">Dynamically compiling Bicep configurations & ARM Templates for every compute purchase.</p>
+              <h4 className="font-sans text-sm font-semibold text-slate-100">Super Fast Delivery</h4>
+              <p className="mt-1 text-xs text-slate-400">Timely packaging and swift local shipping coordinates for all orders.</p>
             </div>
           </div>
 
@@ -51,8 +51,8 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-sans text-sm font-semibold text-slate-100">Enterprise SLA Protection</h4>
-              <p className="mt-1 text-xs text-slate-400">We guarantee 99.99% system availability for all premium hosted developer clusters.</p>
+              <h4 className="font-sans text-sm font-semibold text-slate-100">100% Buyer Protection</h4>
+              <p className="mt-1 text-xs text-slate-400">Secure transactions and simple returns/refund processing policies.</p>
             </div>
           </div>
 
@@ -61,8 +61,8 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
               <RefreshCw className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="font-sans text-sm font-semibold text-slate-100">Scalable Capacity Cycles</h4>
-              <p className="mt-1 text-xs text-slate-400">Seamlessly scale up vCPUs or RAM instances mid-cycle inside your active billing profiles.</p>
+              <h4 className="font-sans text-sm font-semibold text-slate-100">Verified Marketplace Sellers</h4>
+              <p className="mt-1 text-xs text-slate-400">All products are checked for quality before listing on our marketplace.</p>
             </div>
           </div>
 
@@ -76,25 +76,25 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
           {/* COLUMN 1: CORPORATE SUMMARY */}
           <div id="footer-col-summary">
             <div className="flex items-center space-x-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-white font-bold">
-                C
+              <div className="flex h-8 w-8 items-center justify-center rounded bg-blue-600 text-white font-bold font-sans">
+                K
               </div>
               <span id="f-logo-text" className="font-sans text-base font-bold text-white tracking-tight">
-                Cloud<span className="text-blue-500">Commerce</span>
+                Cloud<span className="text-yellow-400">Kart</span>
               </span>
             </div>
             <p className="mt-4 text-xs leading-relaxed text-slate-400">
-              The premium, certified portal delivering high-end virtual cloud compute resources and coordinated developer accessories optimized for Azure Cloud architectures.
+              Your premium, all-in-one multi-vendor shopping destination. Discover deals across electronics, fashion, home essentials, books, and more.
             </p>
             <div id="f-compliance-badges" className="mt-6 flex space-x-2">
-              <span className="rounded bg-slate-800 px-2.5 py-1 text-[9px] font-mono font-semibold text-slate-300">HIPAA COMPLIANT</span>
-              <span className="rounded bg-slate-800 px-2.5 py-1 text-[9px] font-mono font-semibold text-slate-300">SOC2 CERTIFIED</span>
+              <span className="rounded bg-slate-800 px-2.5 py-1 text-[9px] font-mono font-semibold text-slate-300">100% SECURE</span>
+              <span className="rounded bg-slate-800 px-2.5 py-1 text-[9px] font-mono font-semibold text-slate-300">VERIFIED MERCHANTS</span>
             </div>
           </div>
 
           {/* COLUMN 2: ACTIVE ASSET CATEGORIES */}
           <div id="footer-col-categories">
-            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Catalog Registry</h5>
+            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Catalog Categories</h5>
             <ul className="mt-4 space-y-2.5 text-xs">
               <li>
                 <button onClick={() => handleCategoryClick(null)} className="hover:text-blue-400 transition text-left">
@@ -102,50 +102,50 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('Compute & VM')} className="hover:text-blue-400 transition text-left">
-                  Compute VMs & Networks
+                <button onClick={() => handleCategoryClick('Electronics')} className="hover:text-blue-400 transition text-left">
+                  Electronics
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('Data & Storage')} className="hover:text-blue-400 transition text-left">
-                  Cosmos Databases
+                <button onClick={() => handleCategoryClick('Fashion')} className="hover:text-blue-400 transition text-left">
+                  Fashion &amp; Apparel
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('IoT DevKit')} className="hover:text-blue-400 transition text-left">
-                  Premium Audio & IoT Pods
+                <button onClick={() => handleCategoryClick('Home & Kitchen')} className="hover:text-blue-400 transition text-left">
+                  Home &amp; Kitchen
                 </button>
               </li>
               <li>
-                <button onClick={() => handleCategoryClick('Apparel & Gear')} className="hover:text-blue-400 transition text-left">
-                  Certified Dev Apparel
+                <button onClick={() => handleCategoryClick('Sports')} className="hover:text-blue-400 transition text-left">
+                  Sports &amp; Fitness
                 </button>
               </li>
             </ul>
           </div>
 
-          {/* COLUMN 3: BLUEPRINT & DEVELOPER SYSTEM */}
+          {/* COLUMN 3: PARTNERS & PROGRAM */}
           <div id="footer-col-resources">
-            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Azure Developers</h5>
+            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Become a Partner</h5>
             <ul className="mt-4 space-y-2.5 text-xs">
               <li>
-                <button onClick={() => { setActiveTab('advisor'); window.scrollTo(0,0); }} className="hover:text-amber-400 text-left transition flex items-center space-x-1 font-semibold text-slate-300">
-                  <span>AI Architecture Architect</span>
-                </button>
+                <span className="text-slate-300 font-semibold cursor-help" title="Register as seller to access listings dashboard">
+                  Sell on CloudKart
+                </span>
               </li>
               <li>
-                <a href="https://learn.microsoft.com/en-us/azure/" target="_blank" rel="noreferrer" className="hover:text-blue-400 transition">
-                  Official Azure Learn
-                </a>
+                <span className="text-slate-400">
+                  Seller Learning Center
+                </span>
               </li>
               <li>
-                <a href="https://azure.microsoft.com/en-us/pricing/calculator/" target="_blank" rel="noreferrer" className="hover:text-blue-400 transition">
-                  Azure Cost Estimator
-                </a>
+                <span className="text-slate-400">
+                  Merchant Policies
+                </span>
               </li>
               <li>
-                <span className="hover:text-blue-400 cursor-help transition" title="Bicep support included on all checkout blueprints">
-                  Bicep Compiler SDK v2
+                <span className="text-slate-400">
+                  Shipper SLA Requirements
                 </span>
               </li>
             </ul>
@@ -153,15 +153,15 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
 
           {/* COLUMN 4: NEWSLETTER SIGNUP */}
           <div id="footer-col-newsletter">
-            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Release Signals</h5>
+            <h5 className="font-sans text-xs font-bold uppercase tracking-widest text-slate-200">Deals Newsletter</h5>
             <p className="mt-3 text-xs leading-relaxed text-slate-400">
-              Subscribe to capture periodic service upgrades, security telemetry updates and promotional discounts.
+              Subscribe to get notified about flash sales, seasonal discounts, and verified seller coupon codes.
             </p>
             
             {emailSubscribed ? (
               <div id="f-sub-success" className="mt-4 flex items-center space-x-2 rounded bg-slate-800/80 p-3 text-xs text-emerald-400 border border-emerald-900/40">
                 <CheckCircle2 className="h-4.5 w-4.5 shrink-0" />
-                <span>Locked in! See you in the cloud.</span>
+                <span>Subscribed! Check your inbox for deals.</span>
               </div>
             ) : (
               <form id="f-newsletter-form" onSubmit={handleSub} className="mt-4 flex">
@@ -169,7 +169,7 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
                   id="f-newsletter-email"
                   type="email"
                   required
-                  placeholder="azureuser@developer.com"
+                  placeholder="enter email address"
                   value={subEmail}
                   onChange={(e) => setSubEmail(e.target.value)}
                   className="w-full rounded-l bg-slate-800 px-3.5 py-2.5 text-xs text-slate-100 placeholder-slate-500 outline-none ring-offset-slate-900 transition focus:ring-1 focus:ring-blue-500"
@@ -188,16 +188,16 @@ export function Footer({ setActiveTab, setFilterCategory }: FooterProps) {
         </div>
       </div>
 
-      {/* METRIC ACCREDITATIONS & LEGAL ROW */}
+      {/* COPYRIGHT LEGAL ROW */}
       <div id="footer-legal-bar" className="border-t border-slate-800 bg-slate-950 py-6">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between px-4 text-center text-xs md:flex-row sm:px-6 lg:px-8">
           <p id="f-copy-phrase">
-            &copy; {new Date().getFullYear()} CloudCommerce Global Stores Inc. Independent partner, powered by Microsoft Azure Cloud Integration.
+            &copy; {new Date().getFullYear()} CloudKart Global Retail Ltd. All rights reserved.
           </p>
           <div id="f-legal-links" className="mt-4 flex space-x-6 md:mt-0">
             <span className="hover:text-slate-300 transition cursor-pointer">Security Protocol</span>
-            <span className="hover:text-slate-300 transition cursor-pointer">Billing Agreement</span>
-            <span className="hover:text-slate-300 transition cursor-pointer">Status Dashboard</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">Merchant Terms</span>
+            <span className="hover:text-slate-300 transition cursor-pointer">System Status</span>
           </div>
         </div>
       </div>

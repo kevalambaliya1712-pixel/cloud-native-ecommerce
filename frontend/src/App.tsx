@@ -11,8 +11,8 @@ import { ProductDetailView } from './components/ProductDetailView.js';
 import { CartView } from './components/CartView.js';
 import { CheckoutView } from './components/CheckoutView.js';
 import { OrderConfirmationView } from './components/OrderConfirmationView.js';
-import { AzureConsultant } from './components/AzureConsultant.js';
-import { Product, CartItem, Order, CustomResourceConfig } from './types.js';
+import { SellerDashboard } from './components/SellerDashboard.js';
+import { Product, CartItem, Order } from './types.js';
 import { useAuth } from './contexts/AuthContext.js';
 import { getProducts } from './services/product.service.js';
 import { fetchCart, addToCart, updateCartItemQuantity, removeCartItem, clearCart } from './services/cart.service.js';
@@ -40,11 +40,15 @@ export default function App() {
   const [discountPct, setDiscountPct] = React.useState<number>(0);
 
   // Sync products from backend
-  React.useEffect(() => {
+  const refreshProducts = React.useCallback(() => {
     getProducts()
       .then(setProductsList)
       .catch(err => console.error('Failed to load catalog products:', err));
   }, []);
+
+  React.useEffect(() => {
+    refreshProducts();
+  }, [refreshProducts]);
 
   // Sync user's cart from backend if authenticated
   React.useEffect(() => {
@@ -60,18 +64,18 @@ export default function App() {
                 name: srvItem.productName,
                 price: srvItem.productPrice,
                 image: srvItem.productImage,
-                isAzureResource: srvItem.isAzureResource,
-                sku: srvItem.sku,
-                category: 'Compute & VM',
+                category: 'Electronics',
+                brand: 'Unknown',
                 description: '',
-                thumbnails: [srvItem.productImage],
+                images: [srvItem.productImage],
                 rating: 5,
                 ratingCount: 1,
+                stock: 10,
+                sellerId: 'system',
+                sellerName: 'CloudKart',
                 specs: {}
               },
-              quantity: srvItem.quantity,
-              selectedColor: srvItem.selectedColor,
-              customConfig: srvItem.customConfig
+              quantity: srvItem.quantity
             };
           });
           setCart(reconstructed);
@@ -130,13 +134,10 @@ export default function App() {
   const handleAddToCart = async (
     product: Product,
     quantity: number,
-    color?: string,
-    customConfig?: CustomResourceConfig
+    color?: string
   ) => {
     let compoundKey = product.id;
-    if (customConfig) {
-      compoundKey += `-${customConfig.vCPUs}c-${customConfig.ramGB}m-${customConfig.storageGB}s-${customConfig.region}-${customConfig.tier}`;
-    } else if (color) {
+    if (color) {
       compoundKey += `-${color.replace(/\s+/g, '')}`;
     }
 
@@ -152,9 +153,7 @@ export default function App() {
           {
             id: compoundKey,
             product,
-            quantity,
-            selectedColor: color,
-            customConfig
+            quantity
           }
         ];
       }
@@ -167,11 +166,10 @@ export default function App() {
           productName: product.name,
           productPrice: product.price,
           productImage: product.image,
-          isAzureResource: product.isAzureResource,
-          sku: product.sku,
+          isAzureResource: false,
+          sku: product.brand || 'CloudKart',
           quantity,
-          selectedColor: color,
-          customConfig
+          selectedColor: color
         });
       } catch (e) {
         console.error('Failed to sync added item with backend cart:', e);
@@ -188,8 +186,7 @@ export default function App() {
     paymentMethod: string;
   }) => {
     const subtotal = cart.reduce((sum, item) => {
-      const price = item.customConfig ? item.customConfig.monthlyRate : item.product.price;
-      return sum + (price * item.quantity);
+      return sum + (item.product.price * item.quantity);
     }, 0);
 
     const discountAmount = (subtotal * discountPct) / 100;
@@ -201,13 +198,12 @@ export default function App() {
       id: item.id,
       productId: item.product.id,
       productName: item.product.name,
-      productPrice: item.customConfig ? item.customConfig.monthlyRate : item.product.price,
+      productPrice: item.product.price,
       productImage: item.product.image,
-      isAzureResource: item.product.isAzureResource,
-      sku: item.product.sku,
+      brand: item.product.brand || 'CloudKart',
       quantity: item.quantity,
-      selectedColor: item.selectedColor,
-      customConfig: item.customConfig
+      sellerId: item.product.sellerId || 'system',
+      sellerName: item.product.sellerName || 'CloudKart'
     }));
 
     if (user) {
@@ -233,13 +229,14 @@ export default function App() {
       }
     } else {
       const newOrder: Order = {
-        id: `AZ-${Math.floor(100000 + Math.random() * 900000)}-CC`,
+        id: `CK-${Math.floor(100000 + Math.random() * 900000)}-MP`,
         items: [...cart],
         subtotal,
         shipping: shippingCharge,
         tax: estimatedTax,
         discount: discountAmount,
         total: totalAmount,
+        status: 'pending',
         date: new Date().toLocaleDateString(),
         ...metadata
       };
@@ -248,12 +245,6 @@ export default function App() {
 
     setCart([]);
     setActiveTab('confirmed');
-  };
-
-  const handleInjectResources = (recommendations: { product: Product; quantity: number; config: CustomResourceConfig }[]) => {
-    recommendations.forEach((rec) => {
-      handleAddToCart(rec.product, rec.quantity, undefined, rec.config);
-    });
   };
 
   const handleSelectProduct = (product: Product) => {
@@ -324,11 +315,9 @@ export default function App() {
           />
         )}
 
-        {activeTab === 'advisor' && (
-          <AzureConsultant
-            products={productsList}
-            onInjectResources={handleInjectResources}
-            setActiveTab={setActiveTab}
+        {activeTab === 'seller-dashboard' && (
+          <SellerDashboard
+            onProductsUpdated={refreshProducts}
           />
         )}
       </main>

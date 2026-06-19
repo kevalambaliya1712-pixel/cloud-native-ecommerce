@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext.js';
-import { X, LogIn, UserPlus } from 'lucide-react';
+import { X, LogIn, UserPlus, Store } from 'lucide-react';
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -10,9 +10,12 @@ interface AuthModalProps {
 export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
+  const [isSeller, setIsSeller] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
+  const [storeName, setStoreName] = useState('');
+  const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,9 +30,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
       if (isLogin) {
         await login(email, password);
       } else {
-        await register(email, password, name);
+        await register(email, password, name, isSeller ? 'seller' : 'customer', storeName, phone);
       }
       onClose();
+      setEmail(''); setPassword(''); setName(''); setStoreName(''); setPhone('');
     } catch (err: any) {
       setError(err.message || 'Authentication failed. Please try again.');
     } finally {
@@ -38,108 +42,214 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white p-8 shadow-2xl border border-slate-100 animate-in fade-in zoom-in-95 duration-200">
-        
-        {/* Close button */}
-        <button 
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-600 transition"
-        >
-          <X className="h-5 w-5" />
-        </button>
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 200,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', padding: 16
+    }}>
+      <div className="animate-fadeIn" style={{
+        width: '100%', maxWidth: 420, background: 'white',
+        borderRadius: 8, overflow: 'hidden', boxShadow: 'var(--shadow-lg)'
+      }}>
+        {/* Header Section */}
+        <div style={{
+          background: 'var(--primary)', padding: '32px 28px',
+          position: 'relative'
+        }}>
+          <button
+            onClick={onClose}
+            style={{
+              position: 'absolute', right: 12, top: 12,
+              background: 'rgba(255,255,255,0.15)', border: 'none',
+              borderRadius: '50%', width: 32, height: 32,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              color: 'white', cursor: 'pointer'
+            }}
+          >
+            <X size={18} />
+          </button>
 
-        {/* Header */}
-        <div className="mb-8 text-center">
-          <div className="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 mb-3">
-            {isLogin ? <LogIn className="h-6 w-6" /> : <UserPlus className="h-6 w-6" />}
-          </div>
-          <h2 className="text-xl font-bold text-slate-900">
-            {isLogin ? 'Welcome Back' : 'Create Azure Account'}
+          <h2 style={{ color: 'white', fontSize: 24, fontWeight: 700, marginBottom: 6 }}>
+            {isLogin ? 'Welcome Back!' : isSeller ? 'Become a Seller' : 'Create Account'}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            {isLogin ? 'Sign in to access your custom cloud deployments' : 'Get started with CloudCommerce enterprise features'}
+          <p style={{ color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
+            {isLogin
+              ? 'Sign in to access your orders and cart'
+              : isSeller
+              ? 'Register your store and start selling'
+              : 'Join CloudKart for the best shopping experience'}
           </p>
         </div>
 
-        {error && (
-          <div className="mb-4 rounded-xl bg-red-50 p-3.5 text-xs font-semibold text-red-600 border border-red-100">
-            {error}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5">Full Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="John Doe"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs outline-none transition focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
-              />
+        {/* Form Section */}
+        <div style={{ padding: '24px 28px' }}>
+          {error && (
+            <div style={{
+              marginBottom: 16, padding: 12, borderRadius: 6,
+              background: '#fef2f2', border: '1px solid #fecaca',
+              fontSize: 13, fontWeight: 500, color: 'var(--danger)'
+            }}>
+              {error}
             </div>
           )}
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Email Address</label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs outline-none transition focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
-            />
+          <form onSubmit={handleSubmit}>
+            {!isLogin && (
+              <>
+                <div style={{ marginBottom: 14 }}>
+                  <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                    Full Name
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="John Doe"
+                    className="input"
+                  />
+                </div>
+
+                {/* Role Toggle */}
+                <div style={{
+                  marginBottom: 14, display: 'flex', gap: 8
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setIsSeller(false)}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: 6,
+                      border: `2px solid ${!isSeller ? 'var(--primary)' : 'var(--border)'}`,
+                      background: !isSeller ? 'var(--primary-light)' : 'white',
+                      color: !isSeller ? 'var(--primary)' : 'var(--text-secondary)',
+                      fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    <UserPlus size={16} />
+                    Buyer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setIsSeller(true)}
+                    style={{
+                      flex: 1, padding: '10px 12px', borderRadius: 6,
+                      border: `2px solid ${isSeller ? '#e65100' : 'var(--border)'}`,
+                      background: isSeller ? '#fff3e0' : 'white',
+                      color: isSeller ? '#e65100' : 'var(--text-secondary)',
+                      fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                      cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6
+                    }}
+                  >
+                    <Store size={16} />
+                    Seller
+                  </button>
+                </div>
+
+                {isSeller && (
+                  <>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        Store Name
+                      </label>
+                      <input
+                        type="text"
+                        value={storeName}
+                        onChange={(e) => setStoreName(e.target.value)}
+                        placeholder="My Awesome Store"
+                        className="input"
+                        required
+                      />
+                    </div>
+                    <div style={{ marginBottom: 14 }}>
+                      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                        placeholder="+1 234 567 8900"
+                        className="input"
+                      />
+                    </div>
+                  </>
+                )}
+              </>
+            )}
+
+            <div style={{ marginBottom: 14 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Email Address
+              </label>
+              <input
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                className="input"
+              />
+            </div>
+
+            <div style={{ marginBottom: 20 }}>
+              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 6 }}>
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input"
+                minLength={6}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="btn btn-primary"
+              style={{
+                width: '100%', padding: '14px 24px', fontSize: 15,
+                opacity: loading ? 0.6 : 1
+              }}
+            >
+              {loading ? 'Please wait...' : isLogin ? 'Sign In' : isSeller ? 'Register as Seller' : 'Create Account'}
+            </button>
+          </form>
+
+          {/* Footer toggle */}
+          <div style={{ marginTop: 20, textAlign: 'center', fontSize: 13, color: 'var(--text-secondary)' }}>
+            {isLogin ? (
+              <>
+                New to CloudKart?{' '}
+                <button
+                  onClick={() => setIsLogin(false)}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--primary)',
+                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13
+                  }}
+                >
+                  Create an account
+                </button>
+              </>
+            ) : (
+              <>
+                Already have an account?{' '}
+                <button
+                  onClick={() => { setIsLogin(true); setIsSeller(false); }}
+                  style={{
+                    background: 'none', border: 'none', color: 'var(--primary)',
+                    fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', fontSize: 13
+                  }}
+                >
+                  Sign In
+                </button>
+              </>
+            )}
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1.5">Password</label>
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 px-4 py-2.5 text-xs outline-none transition focus:border-blue-500 focus:bg-white focus:ring-1 focus:ring-blue-500"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full rounded-xl bg-blue-600 py-3 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-500 disabled:opacity-50"
-          >
-            {loading ? 'Authenticating...' : isLogin ? 'Sign In' : 'Create Account'}
-          </button>
-        </form>
-
-        {/* Footer toggler */}
-        <div className="mt-6 text-center text-xs text-slate-500">
-          {isLogin ? (
-            <>
-              Don't have an account?{' '}
-              <button 
-                onClick={() => setIsLogin(false)}
-                className="font-bold text-blue-600 hover:underline"
-              >
-                Sign Up
-              </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button 
-                onClick={() => setIsLogin(true)}
-                className="font-bold text-blue-600 hover:underline"
-              >
-                Sign In
-              </button>
-            </>
-          )}
         </div>
-
       </div>
     </div>
   );

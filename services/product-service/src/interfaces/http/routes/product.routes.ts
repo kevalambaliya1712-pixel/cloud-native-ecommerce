@@ -1,25 +1,9 @@
 import { Router, Request, Response } from 'express';
 import { SQLiteProductRepository } from '../../../infrastructure/database/ProductRepository.js';
-import { GoogleGenAI } from '@google/genai';
 import { z } from 'zod';
 
 const router = Router();
 const productRepository = new SQLiteProductRepository();
-
-const getGeminiClient = () => {
-  const key = process.env.GEMINI_API_KEY;
-  if (!key) {
-    throw new Error('GEMINI_API_KEY environment variable is not defined.');
-  }
-  return new GoogleGenAI({
-    apiKey: key,
-    httpOptions: {
-      headers: {
-        'User-Agent': 'aistudio-build',
-      },
-    },
-  });
-};
 
 const reviewSchema = z.object({
   author: z.string().min(1),
@@ -27,6 +11,22 @@ const reviewSchema = z.object({
   title: z.string().min(1),
   body: z.string().min(1),
 });
+
+const createProductSchema = z.object({
+  name: z.string().min(1),
+  category: z.enum(['Electronics', 'Fashion', 'Home & Kitchen', 'Sports', 'Books', 'Beauty', 'Toys', 'Grocery']),
+  brand: z.string().min(1),
+  description: z.string().min(1),
+  price: z.number().positive(),
+  originalPrice: z.number().positive().optional(),
+  image: z.string().url(),
+  images: z.array(z.string().url()).optional(),
+  stock: z.number().int().min(0),
+  badge: z.string().optional(),
+  specs: z.record(z.string()).optional(),
+});
+
+const updateProductSchema = createProductSchema.partial();
 
 // GET all products
 router.get('/', async (req: Request, res: Response) => {
@@ -49,6 +49,17 @@ router.get('/:id', async (req: Request, res: Response) => {
     res.json(product);
   } catch (err) {
     console.error('[Get Product By Id Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// GET products by seller
+router.get('/seller/:sellerId', async (req: Request, res: Response) => {
+  try {
+    const products = await productRepository.findBySellerId(req.params.sellerId);
+    res.json(products);
+  } catch (err) {
+    console.error('[Get Seller Products Error]:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });
@@ -93,66 +104,95 @@ router.post('/:id/reviews', async (req: Request, res: Response) => {
   }
 });
 
-// POST gemini architecture consultant optimization (copied and refined from server.ts)
-router.post('/optimize', async (req: Request, res: Response) => {
+// POST create product (seller only)
+router.post('/', async (req: Request, res: Response) => {
   try {
-    const { prompt } = req.body;
-    if (!prompt || typeof prompt !== 'string') {
-      return res.status(400).json({ error: 'Missing or invalid "prompt" parameter in request body.' });
+    const userRole = req.headers['x-user-role'] as string;
+    const userId = req.headers['x-user-id'] as string;
+    const userEmail = req.headers['x-user-email'] as string;
+
+    if (!userId || userRole !== 'seller') {
+      return res.status(403).json({ error: 'Only sellers can create products.' });
     }
 
-    const ai = getGeminiClient();
+    const data = createProductSchema.parse(req.body);
+    const productId = 'prod_' + Math.random().toString(36).substr(2, 9);
 
-    const systemInstruction = `You are a certified Principal Azure Cloud Solutions Architect. Your role is to analyze user requirement prompts and output a perfectly configured, custom-tailored Azure Cloud Architecture.
-
-You MUST respond strictly in raw JSON format matching this schema:
-{
-  "architectureSummary": "A concise, developer-friendly architectural summary, highlighting how this setup answers the requested workload requirements, with deployment suggestions.",
-  "recommendedResources": [
-    {
-      "id": "azure-vm" or "azure-cosmos" or "azure-cognitive",
-      "reasonText": "Why this specific resource is recommended for their requirements.",
-      "config": {
-        "vCPUs": number (select from: 2, 4, 8, 16, or 32),
-        "ramGB": number (select from: 4, 8, 16, 32, 64, or 128),
-        "storageGB": number (select from: 32, 64, 128, 256, 512, 1024, or 2048),
-        "region": "eastus" or "westus3" or "westeurope" or "eastasia" or "southeastasia",
-        "tier": "Basic" or "Standard" or "Premium",
-        "monthlyRate": number (estimated monthly price, e.g., VM is $40-$500, Cosmos is $60-$800, Cognitive is $50-$600 depending on sizing)
-      }
-    }
-  ]
-}
-
-Only suggest resources that match our direct storefront IDs ("azure-vm", "azure-cosmos", "azure-cognitive") to ensure they are instantly orderable and provisionable.
-DO NOT wrap your response in markdown backticks like \`\`\`json. Return only the raw JSON.`;
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-3.5-flash',
-      contents: prompt,
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        temperature: 0.2,
-      },
+    const product = await productRepository.create({
+      id: productId,
+      ...data,
+      images: data.images || [data.image],
+      rating: 0,
+      ratingCount: 0,
+      sellerId: userId,
+      sellerName: req.body.sellerName || userEmail.split('@')[0],
+      specs: data.specs || {},
+      isOutOfStock: data.stock === 0,
     });
 
-    const responseText = response.text || '';
-    try {
-      const parsedJson = JSON.parse(responseText.trim());
-      return res.json(parsedJson);
-    } catch (jsonErr) {
-      console.error('Failed to parse Gemini response as JSON. Raw output:', responseText);
-      return res.status(500).json({
-        error: 'Parser Error: The AI model did not return formatted JSON. Please try framing your architecture request differently.',
-        rawOutput: responseText,
-      });
+    res.status(201).json(product);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: err.errors });
     }
-  } catch (err: any) {
-    console.error('Error invoking Gemini model:', err);
-    return res.status(500).json({
-      error: err.message || 'An internal server error occurred while invoking Gemini.',
-    });
+    console.error('[Create Product Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// PUT update product (seller only, must own the product)
+router.put('/:id', async (req: Request, res: Response) => {
+  try {
+    const userRole = req.headers['x-user-role'] as string;
+    const userId = req.headers['x-user-id'] as string;
+
+    if (!userId || userRole !== 'seller') {
+      return res.status(403).json({ error: 'Only sellers can update products.' });
+    }
+
+    const existing = await productRepository.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+    if (existing.sellerId !== userId) {
+      return res.status(403).json({ error: 'You can only update your own products.' });
+    }
+
+    const data = updateProductSchema.parse(req.body);
+    const updated = await productRepository.update(req.params.id, data);
+    res.json(updated);
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: err.errors });
+    }
+    console.error('[Update Product Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// DELETE product (seller only, must own the product)
+router.delete('/:id', async (req: Request, res: Response) => {
+  try {
+    const userRole = req.headers['x-user-role'] as string;
+    const userId = req.headers['x-user-id'] as string;
+
+    if (!userId || userRole !== 'seller') {
+      return res.status(403).json({ error: 'Only sellers can delete products.' });
+    }
+
+    const existing = await productRepository.findById(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'Product not found.' });
+    }
+    if (existing.sellerId !== userId) {
+      return res.status(403).json({ error: 'You can only delete your own products.' });
+    }
+
+    await productRepository.delete(req.params.id);
+    res.json({ message: 'Product deleted successfully.' });
+  } catch (err) {
+    console.error('[Delete Product Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
   }
 });
 

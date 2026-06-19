@@ -53,3 +53,10 @@ export const optionalAuthenticateJWT = (req: AuthenticatedRequest, res: Response
     next();
   }
 };
+
+export const requireSellerRole = (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
+  if (!req.user || req.user.role !== 'seller') {
+    return res.status(403).json({ error: 'Forbidden: Seller role required.' });
+  }
+  next();
+};

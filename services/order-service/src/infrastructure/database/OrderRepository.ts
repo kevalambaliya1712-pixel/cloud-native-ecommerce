@@ -30,16 +30,14 @@ export class SQLiteOrderRepository implements IOrderRepository {
           tax REAL NOT NULL,
           discount REAL NOT NULL,
           total REAL NOT NULL,
+          status TEXT NOT NULL DEFAULT 'pending',
           date TEXT NOT NULL,
           email TEXT NOT NULL,
           shippingName TEXT NOT NULL,
           shippingAddress TEXT NOT NULL,
           shippingCity TEXT NOT NULL,
           shippingZip TEXT NOT NULL,
-          paymentMethod TEXT NOT NULL,
-          armTemplate TEXT,
-          cliScript TEXT,
-          bicepCode TEXT
+          paymentMethod TEXT NOT NULL
         )
       `);
 
@@ -51,11 +49,10 @@ export class SQLiteOrderRepository implements IOrderRepository {
           productName TEXT NOT NULL,
           productPrice REAL NOT NULL,
           productImage TEXT NOT NULL,
-          isAzureResource INTEGER NOT NULL,
-          sku TEXT NOT NULL,
+          brand TEXT DEFAULT '',
           quantity INTEGER NOT NULL,
-          selectedColor TEXT,
-          customConfig TEXT,
+          sellerId TEXT DEFAULT '',
+          sellerName TEXT DEFAULT '',
           PRIMARY KEY (orderId, id),
           FOREIGN KEY (orderId) REFERENCES orders (id)
         )
@@ -68,36 +65,30 @@ export class SQLiteOrderRepository implements IOrderRepository {
       this.db.serialize(() => {
         this.db.run(
           `INSERT INTO orders (
-            id, userId, subtotal, shipping, tax, discount, total, date, email, shippingName, shippingAddress, shippingCity, shippingZip, paymentMethod, armTemplate, cliScript, bicepCode
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            id, userId, subtotal, shipping, tax, discount, total, status, date, email, shippingName, shippingAddress, shippingCity, shippingZip, paymentMethod
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [
             order.id, order.userId, order.subtotal, order.shipping, order.tax, order.discount, order.total,
-            order.date, order.email, order.shippingName, order.shippingAddress, order.shippingCity, order.shippingZip,
-            order.paymentMethod, order.armTemplate || null, order.cliScript || null, order.bicepCode || null
+            order.status || 'pending', order.date, order.email, order.shippingName, order.shippingAddress,
+            order.shippingCity, order.shippingZip, order.paymentMethod
           ],
           (err) => {
             if (err) return reject(err);
 
+            if (order.items.length === 0) return resolve(order);
+
             const stmt = this.db.prepare(`
               INSERT INTO order_items (
-                orderId, id, productId, productName, productPrice, productImage, isAzureResource, sku, quantity, selectedColor, customConfig
-              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                orderId, id, productId, productName, productPrice, productImage, brand, quantity, sellerId, sellerName
+              ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `);
 
             let count = 0;
             for (const item of order.items) {
               stmt.run(
-                order.id,
-                item.id,
-                item.productId,
-                item.productName,
-                item.productPrice,
-                item.productImage,
-                item.isAzureResource ? 1 : 0,
-                item.sku,
-                item.quantity,
-                item.selectedColor || null,
-                item.customConfig ? JSON.stringify(item.customConfig) : null,
+                order.id, item.id, item.productId, item.productName, item.productPrice,
+                item.productImage, item.brand || '', item.quantity,
+                item.sellerId || '', item.sellerName || '',
                 (itemErr: any) => {
                   if (itemErr) {
                     stmt.finalize();
@@ -132,11 +123,10 @@ export class SQLiteOrderRepository implements IOrderRepository {
             productName: itemRow.productName,
             productPrice: itemRow.productPrice,
             productImage: itemRow.productImage,
-            isAzureResource: itemRow.isAzureResource === 1,
-            sku: itemRow.sku,
+            brand: itemRow.brand || '',
             quantity: itemRow.quantity,
-            selectedColor: itemRow.selectedColor || undefined,
-            customConfig: itemRow.customConfig ? JSON.parse(itemRow.customConfig) : undefined,
+            sellerId: itemRow.sellerId || '',
+            sellerName: itemRow.sellerName || '',
           }));
 
           resolve({
@@ -148,6 +138,7 @@ export class SQLiteOrderRepository implements IOrderRepository {
             tax: row.tax,
             discount: row.discount,
             total: row.total,
+            status: row.status || 'pending',
             date: row.date,
             email: row.email,
             shippingName: row.shippingName,
@@ -155,9 +146,6 @@ export class SQLiteOrderRepository implements IOrderRepository {
             shippingCity: row.shippingCity,
             shippingZip: row.shippingZip,
             paymentMethod: row.paymentMethod,
-            armTemplate: row.armTemplate || undefined,
-            cliScript: row.cliScript || undefined,
-            bicepCode: row.bicepCode || undefined,
           });
         });
       });
@@ -166,7 +154,7 @@ export class SQLiteOrderRepository implements IOrderRepository {
 
   public findByUserId(userId: string): Promise<Order[]> {
     return new Promise((resolve, reject) => {
-      this.db.all('SELECT * FROM orders WHERE userId = ?', [userId], async (err, rows: any[]) => {
+      this.db.all('SELECT * FROM orders WHERE userId = ? ORDER BY date DESC', [userId], async (err, rows: any[]) => {
         if (err) return reject(err);
         if (rows.length === 0) return resolve([]);
 
@@ -180,6 +168,39 @@ export class SQLiteOrderRepository implements IOrderRepository {
         } catch (itemErr) {
           reject(itemErr);
         }
+      });
+    });
+  }
+
+  public findBySellerId(sellerId: string): Promise<Order[]> {
+    return new Promise((resolve, reject) => {
+      this.db.all(
+        'SELECT DISTINCT orderId FROM order_items WHERE sellerId = ?',
+        [sellerId],
+        async (err, rows: any[]) => {
+          if (err) return reject(err);
+          if (!rows || rows.length === 0) return resolve([]);
+
+          try {
+            const orders: Order[] = [];
+            for (const row of rows) {
+              const order = await this.findById(row.orderId);
+              if (order) orders.push(order);
+            }
+            resolve(orders);
+          } catch (itemErr) {
+            reject(itemErr);
+          }
+        }
+      );
+    });
+  }
+
+  public updateStatus(id: string, status: Order['status']): Promise<Order | null> {
+    return new Promise((resolve, reject) => {
+      this.db.run('UPDATE orders SET status = ? WHERE id = ?', [status, id], (err) => {
+        if (err) return reject(err);
+        this.findById(id).then(resolve).catch(reject);
       });
     });
   }

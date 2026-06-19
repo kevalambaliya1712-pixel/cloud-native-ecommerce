@@ -5,7 +5,11 @@ interface User {
   id: string;
   email: string;
   name?: string;
-  role: 'customer' | 'admin';
+  role: 'customer' | 'seller' | 'admin';
+  storeName?: string;
+  storeDescription?: string;
+  phone?: string;
+  isVerified?: boolean;
 }
 
 interface AuthContextType {
@@ -13,7 +17,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, name?: string) => Promise<void>;
+  register: (email: string, password: string, name?: string, role?: 'customer' | 'seller', storeName?: string, phone?: string) => Promise<void>;
   logout: () => void;
 }
 
@@ -56,12 +60,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const register = async (email: string, password: string, name?: string) => {
+  const register = async (email: string, password: string, name?: string, role?: 'customer' | 'seller', storeName?: string, phone?: string) => {
     setLoading(true);
     try {
       const data = await request('/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password, name }),
+        body: JSON.stringify({ email, password, name, role: role || 'customer', storeName, phone }),
       });
       setAuthToken(data.token);
       setToken(data.token);

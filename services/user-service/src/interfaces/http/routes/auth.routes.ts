@@ -14,6 +14,9 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
   name: z.string().optional(),
+  role: z.enum(['customer', 'seller']).optional().default('customer'),
+  storeName: z.string().optional(),
+  phone: z.string().optional(),
 });
 
 const loginSchema = z.object({
@@ -21,10 +24,17 @@ const loginSchema = z.object({
   password: z.string(),
 });
 
+const updateProfileSchema = z.object({
+  name: z.string().optional(),
+  storeName: z.string().optional(),
+  storeDescription: z.string().optional(),
+  phone: z.string().optional(),
+});
+
 // Register
 router.post('/register', async (req: Request, res: Response) => {
   try {
-    const { email, password, name } = registerSchema.parse(req.body);
+    const { email, password, name, role, storeName, phone } = registerSchema.parse(req.body);
 
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
@@ -40,7 +50,10 @@ router.post('/register', async (req: Request, res: Response) => {
       email,
       passwordHash,
       name,
-      role: 'customer',
+      role: role || 'customer',
+      storeName: role === 'seller' ? storeName : undefined,
+      phone,
+      isVerified: false,
     });
 
     // Generate token
@@ -57,6 +70,10 @@ router.post('/register', async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        storeName: user.storeName,
+        storeDescription: user.storeDescription,
+        phone: user.phone,
+        isVerified: user.isVerified,
       },
     });
   } catch (err: any) {
@@ -96,6 +113,10 @@ router.post('/login', async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        storeName: user.storeName,
+        storeDescription: user.storeDescription,
+        phone: user.phone,
+        isVerified: user.isVerified,
       },
     });
   } catch (err: any) {
@@ -127,11 +148,90 @@ router.get('/profile', async (req: Request, res: Response) => {
         email: user.email,
         name: user.name,
         role: user.role,
+        storeName: user.storeName,
+        storeDescription: user.storeDescription,
+        phone: user.phone,
+        isVerified: user.isVerified,
         createdAt: user.createdAt,
       },
     });
   } catch (err) {
     console.error('[User Profile Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// Update Profile
+router.put('/profile', async (req: Request, res: Response) => {
+  const userId = req.headers['x-user-id'] as string;
+
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized: Missing user identity context.' });
+  }
+
+  try {
+    const fields = updateProfileSchema.parse(req.body);
+    const user = await userRepository.update(userId, fields);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found.' });
+    }
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        role: user.role,
+        storeName: user.storeName,
+        storeDescription: user.storeDescription,
+        phone: user.phone,
+        isVerified: user.isVerified,
+      },
+    });
+  } catch (err: any) {
+    if (err instanceof z.ZodError) {
+      return res.status(400).json({ error: err.errors });
+    }
+    console.error('[Update Profile Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// GET all sellers (public)
+router.get('/sellers', async (req: Request, res: Response) => {
+  try {
+    const sellers = await userRepository.findAllSellers();
+    res.json(sellers.map(s => ({
+      id: s.id,
+      name: s.name,
+      storeName: s.storeName,
+      storeDescription: s.storeDescription,
+      isVerified: s.isVerified,
+      createdAt: s.createdAt,
+    })));
+  } catch (err) {
+    console.error('[Get Sellers Error]:', err);
+    res.status(500).json({ error: 'Internal server error.' });
+  }
+});
+
+// GET seller by ID (public)
+router.get('/sellers/:id', async (req: Request, res: Response) => {
+  try {
+    const seller = await userRepository.findById(req.params.id);
+    if (!seller || seller.role !== 'seller') {
+      return res.status(404).json({ error: 'Seller not found.' });
+    }
+    res.json({
+      id: seller.id,
+      name: seller.name,
+      storeName: seller.storeName,
+      storeDescription: seller.storeDescription,
+      isVerified: seller.isVerified,
+      createdAt: seller.createdAt,
+    });
+  } catch (err) {
+    console.error('[Get Seller Error]:', err);
     res.status(500).json({ error: 'Internal server error.' });
   }
 });

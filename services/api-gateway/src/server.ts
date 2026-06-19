@@ -4,7 +4,7 @@ import helmet from 'helmet';
 import dotenv from 'dotenv';
 import { createProxyMiddleware, Options } from 'http-proxy-middleware';
 import { services } from './config/services.js';
-import { authenticateJWT, optionalAuthenticateJWT } from './interfaces/middleware/auth.middleware.js';
+import { authenticateJWT, optionalAuthenticateJWT, requireSellerRole } from './interfaces/middleware/auth.middleware.js';
 import { globalRateLimiter } from './interfaces/middleware/rate-limit.middleware.js';
 
 dotenv.config();
@@ -20,10 +20,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization', 'x-user-id', 'x-user-email', 'x-user-role'],
 }));
 
-// We only parse JSON for gateway-level routes, otherwise we let the proxy stream body
-// Gateway-level health check doesn't need body parsing, but we can do it after or before.
-// Actually, it's safer NOT to use global body parser before proxying because it can mess up http-proxy-middleware.
-// We only parse json for specific endpoints if we implement them in the gateway, but we don't have any except health checks!
+// Gateway-level health check
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP', service: 'API Gateway', timestamp: new Date() });
 });
@@ -56,14 +53,14 @@ const createGatewayProxy = (target: string, requiresAuth = false, optionalAuth =
   return [middleware];
 };
 
-// Route user requests
+// Route user/auth requests
 app.use('/api/auth', ...createGatewayProxy(services.userService));
 
-// Route product requests (optional auth, in case we want to customize products or allow review authorship checking)
-app.use('/api/products', ...createGatewayProxy(services.productService, false, true));
+// Route seller listing (public)
+app.use('/api/sellers', ...createGatewayProxy(services.userService, false, true));
 
-// Route gemini AI requests
-app.use('/api/gemini', ...createGatewayProxy(services.productService, false, true));
+// Route product requests (optional auth for review authorship)
+app.use('/api/products', ...createGatewayProxy(services.productService, false, true));
 
 // Route cart requests (requires auth)
 app.use('/api/cart', ...createGatewayProxy(services.cartService, true));

@@ -27,3 +27,14 @@ export async function fetchOrders() {
 export async function fetchOrderById(id: string) {
   return request(`/orders/${id}`);
 }
+
+export async function fetchSellerOrders() {
+  return request('/orders/seller');
+}
+
+export async function updateOrderStatus(orderId: string, status: string) {
+  return request(`/orders/${orderId}/status`, {
+    method: 'PUT',
+    body: JSON.stringify({ status }),
+  });
+}

@@ -4,263 +4,190 @@
  */
 
 import React from 'react';
-import { ShoppingBag, ArrowRight, Trash2, Cpu, Tag, Server, Check, ArrowLeft } from 'lucide-react';
+import { Trash2, ShoppingBag, ArrowLeft, Tag } from 'lucide-react';
 import { CartItem } from '../types';
 
-interface CartViewProps {
+interface Props {
   cart: CartItem[];
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemoveItem: (id: string) => void;
   onContinueShopping: () => void;
-  onProceedToCheckout: (discountPct: number) => void;
+  onProceedToCheckout: (discount: number) => void;
 }
 
-export function CartView({
-  cart,
-  onUpdateQuantity,
-  onRemoveItem,
-  onContinueShopping,
-  onProceedToCheckout
-}: CartViewProps) {
+export function CartView({ cart, onUpdateQuantity, onRemoveItem, onContinueShopping, onProceedToCheckout }: Props) {
   const [promoCode, setPromoCode] = React.useState('');
   const [discountPct, setDiscountPct] = React.useState(0);
-  const [promoFeedback, setPromoFeedback] = React.useState('');
 
-  const subtotal = React.useMemo(() => {
-    return cart.reduce((sum, item) => {
-      const price = item.customConfig ? item.customConfig.monthlyRate : item.product.price;
-      return sum + (price * item.quantity);
-    }, 0);
-  }, [cart]);
+  const subtotal = cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+  const discount = (subtotal * discountPct) / 100;
+  const delivery = subtotal > 50 ? 0 : 5;
+  const total = subtotal - discount + delivery;
 
-  const handleApplyPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    const clean = promoCode.trim().toUpperCase();
-    if (clean === 'AZURE50') {
-      setDiscountPct(50);
-      setPromoFeedback('Promo valid: 50% Developer Discount Applied!');
-    } else if (clean === 'CLOUDCOMMERCE' || clean === 'CLOUD20') {
+  const handleApplyPromo = () => {
+    if (promoCode.toUpperCase() === 'SAVE10') {
+      setDiscountPct(10);
+    } else if (promoCode.toUpperCase() === 'FIRST20') {
       setDiscountPct(20);
-      setPromoFeedback('Promo valid: 20% Retail Discount Applied!');
     } else {
-      setPromoFeedback('Error: This code is invalid or has expired.');
       setDiscountPct(0);
     }
   };
 
-  const discountAmount = (subtotal * discountPct) / 100;
-  const shippingCharge = subtotal > 150 || subtotal === 0 ? 0 : 15;
-  const estimatedTax = (subtotal - discountAmount) * 0.0825; // 8.25% standard cloud server tax
-  const grandTotal = subtotal - discountAmount + shippingCharge + estimatedTax;
-
   if (cart.length === 0) {
     return (
-      <div id="cart-empty-state" className="mx-auto max-w-2xl px-4 py-16 text-center">
-        <div className="flex h-16 w-16 mx-auto items-center justify-center rounded-full bg-slate-50 text-slate-400 border border-slate-100">
-          <ShoppingBag className="h-8 w-8" />
+      <div className="animate-fadeIn" style={{ background: 'var(--bg-primary)', minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ textAlign: 'center' }}>
+          <div style={{ width: 80, height: 80, borderRadius: '50%', background: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
+            <ShoppingBag size={36} color="#b0b0b0" />
+          </div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Your cart is empty</h2>
+          <p style={{ fontSize: 14, color: 'var(--text-secondary)', marginBottom: 24 }}>Add items to your cart to get started</p>
+          <button onClick={onContinueShopping} className="btn btn-primary" style={{ padding: '12px 32px' }}>
+            Continue Shopping
+          </button>
         </div>
-        <h2 className="mt-6 text-xl font-extrabold text-slate-950">Draft empty</h2>
-        <p className="mt-2 text-xs text-slate-500 leading-relaxed max-w-sm mx-auto">
-          You haven't customized any Azure architectures or developer gadgets yet! Load up the specifications panel of any resource to get started.
-        </p>
-        <button
-          id="cart-empty-back-cta"
-          onClick={onContinueShopping}
-          className="mt-8 inline-flex items-center space-x-2 rounded-full bg-blue-600 px-6 py-3 text-xs font-bold text-white shadow-lg shadow-blue-200 hover:bg-blue-500 hover:shadow-blue-100 transition"
-        >
-          <ArrowLeft className="h-4 w-4" />
-          <span>Launch Spec Sheets Catalog</span>
-        </button>
       </div>
     );
   }
 
   return (
-    <div id="cart-view" className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      
-      <h2 id="cart-title" className="font-sans text-2xl font-black text-slate-950">Active Cart Configurations</h2>
-      <p id="cart-subtitle" className="text-xs text-slate-400 font-semibold">{cart.length} configuration packages loaded.</p>
+    <div className="animate-fadeIn" style={{ background: 'var(--bg-primary)', minHeight: '100vh', paddingBottom: 40 }}>
+      <div className="container" style={{ paddingTop: 24 }}>
+        <button onClick={onContinueShopping} style={{
+          display: 'flex', alignItems: 'center', gap: 6, background: 'none',
+          border: 'none', color: 'var(--primary)', fontSize: 13, fontWeight: 600,
+          cursor: 'pointer', fontFamily: 'inherit', marginBottom: 20
+        }}>
+          <ArrowLeft size={16} /> Continue Shopping
+        </button>
 
-      {/* TWO COLUMN GRID FOR CART ITEMS & ESTIMATES */}
-      <div id="cart-grid" className="mt-8 grid grid-cols-1 gap-10 lg:grid-cols-12">
-        
-        {/* LEFT COMPACT LIST (8 columns) */}
-        <div id="cart-items-panel" className="lg:col-span-8 space-y-4">
-          {cart.map((item) => {
-            const isAzure = item.product.isAzureResource;
-            const price = item.customConfig ? item.customConfig.monthlyRate : item.product.price;
+        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+          {/* Cart Items */}
+          <div style={{ flex: 1, minWidth: 400 }}>
+            <div className="card" style={{ overflow: 'hidden' }}>
+              <div style={{ padding: '16px 24px', borderBottom: '1px solid #f0f0f0' }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700 }}>Shopping Cart ({cart.length} items)</h2>
+              </div>
 
-            return (
-              <div 
-                key={item.id}
-                id={`cart-item-${item.id}`}
-                className="flex flex-col sm:flex-row items-center sm:justify-between rounded-2xl border border-slate-100 bg-white p-5 shadow-sm hover:shadow-md hover:shadow-slate-50 transition"
-              >
-                {/* Product spec block */}
-                <div id={`item-spec-${item.id}`} className="flex flex-1 items-center space-x-4">
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-50 border border-slate-100">
-                    <img
-                      src={item.product.image}
-                      alt={item.product.name}
-                      referrerPolicy="no-referrer"
-                      className="h-full w-full object-cover object-center"
-                    />
-                  </div>
-                  <div>
-                    <h4 className="font-sans text-xs sm:text-sm font-bold text-slate-900 line-clamp-1">{item.product.name}</h4>
-                    
-                    {isAzure && item.customConfig ? (
-                      /* AZURE DYNAMIC LABELS */
-                      <div className="mt-1 flex flex-wrap gap-1.5 font-mono text-[9px] text-blue-700">
-                        <span className="rounded bg-blue-50 px-2 py-0.5 font-bold flex items-center space-x-0.5"><Cpu className="h-2.5 w-2.5" /><span>{item.customConfig.vCPUs} vCPUs</span></span>
-                        <span className="rounded bg-blue-50 px-2 py-0.5 font-bold">{item.customConfig.ramGB}GB RAM</span>
-                        <span className="rounded bg-blue-50 px-2 py-0.5 font-bold">{item.customConfig.storageGB}GB SSD</span>
-                        <span className="rounded bg-blue-50 px-2 py-0.5 font-bold uppercase">{item.customConfig.region}</span>
-                        <span className="rounded bg-indigo-50 text-indigo-700 px-2 py-0.5 font-bold">{item.customConfig.tier} SLA</span>
+              {cart.map(item => (
+                <div
+                  key={item.id}
+                  style={{
+                    display: 'flex', gap: 16, padding: '20px 24px',
+                    borderBottom: '1px solid #f5f5f5'
+                  }}
+                >
+                  <img
+                    src={item.product.image}
+                    alt={item.product.name}
+                    referrerPolicy="no-referrer"
+                    style={{ width: 80, height: 80, objectFit: 'contain', borderRadius: 4, background: '#f8f8f8', padding: 8 }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <h3 style={{ fontSize: 14, fontWeight: 500, lineHeight: 1.4, marginBottom: 4 }}>{item.product.name}</h3>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)' }}>Seller: {item.product.sellerName}</p>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', border: '1px solid var(--border)', borderRadius: 4 }}>
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity - 1)} style={{ width: 28, height: 28, border: 'none', background: '#f5f5f5', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>−</button>
+                        <span style={{ width: 36, textAlign: 'center', fontSize: 13, fontWeight: 700 }}>{item.quantity}</span>
+                        <button onClick={() => onUpdateQuantity(item.id, item.quantity + 1)} style={{ width: 28, height: 28, border: 'none', background: '#f5f5f5', cursor: 'pointer', fontSize: 16, fontWeight: 700 }}>+</button>
                       </div>
-                    ) : (
-                      /* PHYSICAL GEAR SWATCH LABELS */
-                      <p className="mt-1 text-[10px] font-bold text-slate-400">Swatch: <span className="text-slate-600">{item.selectedColor}</span></p>
-                    )}
-
-                    <span className="mt-2 block font-mono text-xs font-semibold text-slate-500">
-                      ${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} each
-                    </span>
+                      <span style={{ fontSize: 16, fontWeight: 700 }}>${(item.product.price * item.quantity).toFixed(2)}</span>
+                      {item.product.originalPrice && (
+                        <span style={{ fontSize: 12, color: 'var(--text-secondary)', textDecoration: 'line-through' }}>
+                          ${(item.product.originalPrice * item.quantity).toFixed(2)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-
-                {/* Adjusters and Actions */}
-                <div id={`item-actions-${item.id}`} className="mt-4 sm:mt-0 flex items-center justify-between sm:justify-end gap-6 w-full sm:w-auto">
-                  
-                  {/* QUANTITY TUNER */}
-                  <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-1">
-                    <button
-                      onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-white hover:text-slate-800 transition"
-                    >
-                      -
-                    </button>
-                    <span className="w-8 text-center font-mono text-xs font-bold text-slate-800">{item.quantity}</span>
-                    <button
-                      onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
-                      className="flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-white hover:text-slate-800 transition"
-                    >
-                      +
-                    </button>
-                  </div>
-
-                  {/* PRICE SUM TOTAL MULTIPLIER */}
-                  <div className="text-right">
-                    <span className="block font-mono text-sm font-black text-slate-950">
-                      ${(price * item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </span>
-                  </div>
-
-                  {/* RESTORE TRASH REMOVAL */}
                   <button
                     onClick={() => onRemoveItem(item.id)}
-                    className="rounded-lg p-2 text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition"
-                    title="Remove from Cart"
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--text-secondary)',
+                      cursor: 'pointer', padding: 4, alignSelf: 'flex-start'
+                    }}
                   >
-                    <Trash2 className="h-4.5 w-4.5" />
+                    <Trash2 size={18} />
                   </button>
-
                 </div>
-              </div>
-            );
-          })}
-
-          <div id="continue-shopping" className="flex justify-between pt-4">
-            <button
-              onClick={onContinueShopping}
-              className="group flex items-center space-x-1.5 text-xs font-bold uppercase tracking-wider text-blue-600 hover:text-blue-500 transition"
-            >
-              <ArrowLeft className="h-4 w-4 transform transition-transform group-hover:-translate-x-0.5" />
-              <span>Back to Registry</span>
-            </button>
-          </div>
-        </div>
-
-        {/* RIGHT ESTIMATES BILLING COLUMN (4 columns) */}
-        <aside id="cart-summary-sidebar" className="lg:col-span-4 select-none">
-          <div className="rounded-2xl border border-slate-100 bg-white p-6 shadow-sm">
-            <h3 className="font-sans text-sm font-bold text-slate-900 border-b border-slate-50 pb-3 uppercase tracking-wider">Configuration Estimates</h3>
-
-            <div className="mt-5 space-y-3.5 text-xs font-medium text-slate-500">
-              <div className="flex justify-between">
-                <span>Baseline Subtotal</span>
-                <span className="font-mono text-slate-900 font-bold">${subtotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-
-              {discountPct > 0 && (
-                <div className="flex justify-between text-emerald-600 font-bold">
-                  <span className="flex items-center space-x-1"><Tag className="h-3.5 w-3.5" /><span>Promo Discount ({discountPct}%)</span></span>
-                  <span className="font-mono">-${discountAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              )}
-
-              <div className="flex justify-between">
-                <span>Telemetry Transport</span>
-                <span className="font-mono text-slate-900 font-semibold">
-                  {shippingCharge === 0 ? 'FREE' : `$${shippingCharge.toFixed(2)}`}
-                </span>
-              </div>
-
-              <div className="flex justify-between">
-                <span>Estimated Azure Taxes (8.25%)</span>
-                <span className="font-mono text-slate-900 font-semibold">${estimatedTax.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
-
-              <div className="border-t border-slate-100 pt-3.5 flex justify-between text-sm font-bold font-sans text-slate-950">
-                <span>Total Budget Charge</span>
-                <span className="font-mono font-black text-blue-600">${grandTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-              </div>
+              ))}
             </div>
+          </div>
 
-            {/* PROMO INPUT PANEL */}
-            <form id="promo-form" onSubmit={handleApplyPromo} className="mt-6 border-t border-slate-100 pt-5">
-              <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Developer Promo Offer</label>
-              <div className="mt-2.5 flex">
-                <input
-                  type="text"
-                  placeholder="AZURE50 or CLOUD20"
-                  value={promoCode}
-                  onChange={(e) => setPromoCode(e.target.value)}
-                  className="w-full rounded-l-lg border border-slate-200 px-3.5 py-2 text-xs font-semibold uppercase text-slate-700 outline-none focus:border-blue-500"
-                />
+          {/* Price Summary */}
+          <div style={{ width: 340, flexShrink: 0 }}>
+            <div className="card" style={{ position: 'sticky', top: 130 }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid #f0f0f0' }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                  Price Details
+                </h3>
+              </div>
+
+              <div style={{ padding: '16px 20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14 }}>
+                  <span>Price ({cart.length} items)</span>
+                  <span>${subtotal.toFixed(2)}</span>
+                </div>
+
+                {discountPct > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14, color: 'var(--success)' }}>
+                    <span>Discount ({discountPct}%)</span>
+                    <span>-${discount.toFixed(2)}</span>
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12, fontSize: 14 }}>
+                  <span>Delivery Charges</span>
+                  <span style={{ color: delivery === 0 ? 'var(--success)' : undefined }}>
+                    {delivery === 0 ? 'FREE' : `$${delivery.toFixed(2)}`}
+                  </span>
+                </div>
+
+                <div style={{
+                  display: 'flex', justifyContent: 'space-between',
+                  padding: '14px 0', marginTop: 8, borderTop: '1px dashed var(--border)',
+                  fontSize: 16, fontWeight: 700
+                }}>
+                  <span>Total Amount</span>
+                  <span>${total.toFixed(2)}</span>
+                </div>
+
+                {/* Promo Code */}
+                <div style={{ marginTop: 16, padding: 12, background: '#f8f9fa', borderRadius: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                    <Tag size={14} color="var(--primary)" />
+                    <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>Have a promo code?</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <input
+                      value={promoCode}
+                      onChange={(e) => setPromoCode(e.target.value)}
+                      placeholder="Enter code"
+                      className="input"
+                      style={{ fontSize: 13, padding: '8px 12px' }}
+                    />
+                    <button onClick={handleApplyPromo} className="btn btn-primary" style={{ fontSize: 12, padding: '8px 16px', whiteSpace: 'nowrap' }}>
+                      Apply
+                    </button>
+                  </div>
+                  <p style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 6 }}>
+                    Try SAVE10 or FIRST20
+                  </p>
+                </div>
+
                 <button
-                  type="submit"
-                  className="rounded-r-lg bg-slate-900 px-4 text-xs font-bold text-white hover:bg-slate-800 transition"
+                  onClick={() => onProceedToCheckout(discountPct)}
+                  className="btn btn-accent"
+                  style={{ width: '100%', marginTop: 16, padding: '14px 24px', fontSize: 15, borderRadius: 4 }}
                 >
-                  Apply
+                  PLACE ORDER
                 </button>
               </div>
-              {promoFeedback && (
-                <div className={`mt-2 flex items-center space-x-1 text-[10px] font-bold ${promoFeedback.includes('Applied') ? 'text-emerald-600' : 'text-rose-500'}`}>
-                  <Check className="h-3.5 w-3.5 shrink-0" />
-                  <span>{promoFeedback}</span>
-                </div>
-              )}
-            </form>
-
-            {/* GRAND SUBMIT CHECKOUT CTAS */}
-            <button
-              id="proceed-checkout-btn"
-              onClick={() => onProceedToCheckout(discountPct)}
-              className="mt-6 flex w-full items-center justify-center space-x-2 rounded-lg bg-blue-600 py-3 text-xs font-bold text-white shadow-xl shadow-blue-100 hover:bg-blue-500 transition"
-            >
-              <span>Compile Deployment &amp; Checkout</span>
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
-
-            <span id="guarantees-sub" className="mt-3 block text-center text-[10px] text-slate-400 font-semibold leading-normal">
-              Prices estimated. Tax and compute SLA calculations generated active in Virginia Data Centers.
-            </span>
+            </div>
           </div>
-        </aside>
-
+        </div>
       </div>
-
     </div>
   );
 }

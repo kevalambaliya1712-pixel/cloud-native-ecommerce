@@ -9,23 +9,21 @@ pipeline {
             }
         }
 
-        stage('Build') {
+        stage('Build Frontend Docker Image') {
             steps {
                 sh '''
-                echo "Build Started"
-                date
-                hostname
-                pwd
+                docker build -t frontend-app:latest ./frontend
                 '''
             }
         }
 
-        stage('Verify') {
+        stage('Verify Docker Image') {
             steps {
                 sh '''
-                echo "Pipeline Working Successfully"
+                docker images
                 '''
             }
         }
+
     }
 }

@@ -20,7 +20,7 @@ spec:
       serviceAccountName: cloudcommerce-sa
       containers:
         - name: user-service
-          image: cloudcommerceacr.azurecr.io/user-service:latest
+          image: kevalacr123.azurecr.io/user-service:v1
           ports:
             - containerPort: 3001
           envFrom:

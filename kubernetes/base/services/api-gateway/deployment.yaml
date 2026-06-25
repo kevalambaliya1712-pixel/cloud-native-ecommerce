@@ -21,7 +21,7 @@ spec:
       serviceAccountName: cloudcommerce-sa
       containers:
         - name: api-gateway
-          image: cloudcommerceacr.azurecr.io/api-gateway:latest
+          image: kevalacr123.azurecr.io/api-gateway:v1
           ports:
             - containerPort: 3000
               protocol: TCP
@@ -57,14 +57,3 @@ spec:
             initialDelaySeconds: 5
             periodSeconds: 10
             timeoutSeconds: 3
-          volumeMounts:
-            - name: secrets-store
-              mountPath: "/mnt/secrets-store"
-              readOnly: true
-      volumes:
-        - name: secrets-store
-          csi:
-            driver: secrets-store.csi.k8s.io
-            readOnly: true
-            volumeAttributes:
-              secretProviderClass: azure-kv-secrets

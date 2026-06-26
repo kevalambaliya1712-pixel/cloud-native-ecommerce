@@ -124,7 +124,7 @@ module "key_vault" {
   location            = local.location
   resource_group_name = azurerm_resource_group.main.name
   allowed_subnet_ids  = [module.networking.aks_subnet_id]
-  aks_identity_principal_id = module.aks.aks_identity_principal_id
+  aks_identity_principal_id = module.aks.key_vault_secrets_provider_object_id
   jwt_signing_key     = var.jwt_signing_key
   tags                = local.common_tags
 }

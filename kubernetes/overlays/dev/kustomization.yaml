@@ -6,8 +6,6 @@ namespace: cloudcommerce-dev
 resources:
   - ../../base
 
-namePrefix: dev-
-
 commonLabels:
   environment: development
 
@@ -28,6 +26,13 @@ patches:
       - op: replace
         path: /spec/maxReplicas
         value: 2
+  - target:
+      kind: SecretProviderClass
+      name: azure-kv-secrets
+    patch: |
+      - op: replace
+        path: /spec/parameters/keyvaultName
+        value: kv-cloudcommerce-dev
 
 configMapGenerator:
   - name: app-config

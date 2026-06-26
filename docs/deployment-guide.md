@@ -38,14 +38,14 @@ az provider register --namespace Microsoft.OperationalInsights
 
 ### 2.1 Bootstrap Remote State
 ```bash
-cd infrastructure/backend
+cd infrastructure/terraform/backend-init
 terraform init
 terraform apply -auto-approve
 ```
 
 ### 2.2 Deploy Dev Environment
 ```bash
-cd infrastructure/environments/dev
+cd infrastructure/terraform/environments/dev
 terraform init
 terraform plan -out=tfplan
 terraform apply tfplan
@@ -54,8 +54,8 @@ terraform apply tfplan
 ### 2.3 Retrieve AKS Credentials
 ```bash
 az aks get-credentials \
-  --resource-group cloudcommerce-rg-dev \
-  --name cloudcommerce-aks-dev
+  --resource-group rg-cloudcommerce-dev \
+  --name aks-cloudcommerce-dev
 ```
 
 ---
@@ -67,12 +67,21 @@ az aks get-credentials \
 az acr login --name cloudcommercedevcr
 
 # Build and push all service images
-docker compose build
-docker compose push
+docker build -t cloudcommercedevcr.azurecr.io/api-gateway:dev-latest services/api-gateway/
+docker build -t cloudcommercedevcr.azurecr.io/user-service:dev-latest services/user-service/
+docker build -t cloudcommercedevcr.azurecr.io/product-service:dev-latest services/product-service/
+docker build -t cloudcommercedevcr.azurecr.io/cart-service:dev-latest services/cart-service/
+docker build -t cloudcommercedevcr.azurecr.io/order-service:dev-latest services/order-service/
+docker build -t cloudcommercedevcr.azurecr.io/notification-service:dev-latest services/notification-service/
+docker build -t cloudcommercedevcr.azurecr.io/frontend:dev-latest frontend/
 
-# Or build individually:
-docker build -t cloudcommercedevcr.azurecr.io/api-gateway:latest services/api-gateway/
-docker push cloudcommercedevcr.azurecr.io/api-gateway:latest
+docker push cloudcommercedevcr.azurecr.io/api-gateway:dev-latest
+docker push cloudcommercedevcr.azurecr.io/user-service:dev-latest
+docker push cloudcommercedevcr.azurecr.io/product-service:dev-latest
+docker push cloudcommercedevcr.azurecr.io/cart-service:dev-latest
+docker push cloudcommercedevcr.azurecr.io/order-service:dev-latest
+docker push cloudcommercedevcr.azurecr.io/notification-service:dev-latest
+docker push cloudcommercedevcr.azurecr.io/frontend:dev-latest
 ```
 
 ---
@@ -83,6 +92,17 @@ docker push cloudcommercedevcr.azurecr.io/api-gateway:latest
 ```bash
 # Dev environment
 kubectl apply -k kubernetes/overlays/dev/
+
+# Fill Azure-specific Key Vault CSI settings for the live cluster
+TENANT_ID=$(az account show --query tenantId -o tsv)
+CSI_CLIENT_ID=$(az aks show \
+  --resource-group rg-cloudcommerce-dev \
+  --name aks-cloudcommerce-dev \
+  --query addonProfiles.azureKeyvaultSecretsProvider.identity.clientId \
+  -o tsv)
+kubectl -n cloudcommerce-dev patch secretproviderclass azure-kv-secrets \
+  --type merge \
+  --patch "{\"spec\":{\"parameters\":{\"tenantId\":\"$TENANT_ID\",\"userAssignedIdentityID\":\"$CSI_CLIENT_ID\"}}}"
 
 # Staging environment
 kubectl apply -k kubernetes/overlays/staging/
@@ -112,7 +132,7 @@ kubectl get ingress -n cloudcommerce-dev
 
 ### 5.1 Azure Key Vault Secrets
 ```bash
-KV_NAME="cloudcommerce-kv-dev"
+KV_NAME="kv-cloudcommerce-dev"
 
 az keyvault secret set --vault-name $KV_NAME --name jwt-signing-key --value "<JWT_SECRET>"
 az keyvault secret set --vault-name $KV_NAME --name gemini-api-key --value "<GEMINI_KEY>"

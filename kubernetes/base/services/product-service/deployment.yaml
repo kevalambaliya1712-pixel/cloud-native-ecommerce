@@ -20,7 +20,7 @@ spec:
       serviceAccountName: cloudcommerce-sa
       containers:
         - name: product-service
-          image: kevalacr123.azurecr.io/product-service:v2
+          image: cloudcommerceacr.azurecr.io/product-service:latest
           ports:
             - containerPort: 3002
           envFrom:
@@ -39,6 +39,10 @@ spec:
                 secretKeyRef:
                   name: cloudcommerce-secrets
                   key: GEMINI_API_KEY
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -58,6 +62,13 @@ spec:
               port: 3002
             initialDelaySeconds: 5
             periodSeconds: 10
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: azure-kv-secrets
 ---
 apiVersion: v1
 kind: Service

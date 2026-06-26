@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: kevalacr123.azurecr.io/frontend:v1
+          image: cloudcommerceacr.azurecr.io/frontend:latest
           ports:
             - containerPort: 80
           resources:

@@ -6,8 +6,6 @@ namespace: cloudcommerce-staging
 resources:
   - ../../base
 
-namePrefix: stg-
-
 commonLabels:
   environment: staging
 
@@ -27,6 +25,13 @@ patches:
       - op: replace
         path: /spec/maxReplicas
         value: 4
+  - target:
+      kind: SecretProviderClass
+      name: azure-kv-secrets
+    patch: |
+      - op: replace
+        path: /spec/parameters/keyvaultName
+        value: kv-cloudcommerce-staging
 
 configMapGenerator:
   - name: app-config

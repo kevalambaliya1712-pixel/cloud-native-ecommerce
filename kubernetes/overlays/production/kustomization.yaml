@@ -6,8 +6,6 @@ namespace: cloudcommerce-prod
 resources:
   - ../../base
 
-namePrefix: prod-
-
 commonLabels:
   environment: production
 
@@ -75,6 +73,13 @@ patches:
                         values:
                           - cloudcommerce
                   topologyKey: kubernetes.io/hostname
+  - target:
+      kind: SecretProviderClass
+      name: azure-kv-secrets
+    patch: |
+      - op: replace
+        path: /spec/parameters/keyvaultName
+        value: kv-cloudcommerce-prod
 
 configMapGenerator:
   - name: app-config

@@ -34,6 +34,16 @@ output "aks_identity_principal_id" {
   description = "AKS managed identity principal ID"
 }
 
+output "key_vault_secrets_provider_client_id" {
+  value       = azurerm_kubernetes_cluster.main.key_vault_secrets_provider[0].secret_identity[0].client_id
+  description = "Client ID for the AKS Key Vault Secrets Provider add-on identity"
+}
+
+output "key_vault_secrets_provider_object_id" {
+  value       = azurerm_kubernetes_cluster.main.key_vault_secrets_provider[0].secret_identity[0].object_id
+  description = "Object ID for the AKS Key Vault Secrets Provider add-on identity"
+}
+
 output "oidc_issuer_url" {
   value       = azurerm_kubernetes_cluster.main.oidc_issuer_url
   description = "OIDC issuer URL for workload identity"

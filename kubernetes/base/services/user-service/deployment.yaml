@@ -20,7 +20,7 @@ spec:
       serviceAccountName: cloudcommerce-sa
       containers:
         - name: user-service
-          image: kevalacr123.azurecr.io/user-service:v1
+          image: cloudcommerceacr.azurecr.io/user-service:latest
           ports:
             - containerPort: 3001
           envFrom:
@@ -39,6 +39,10 @@ spec:
                 secretKeyRef:
                   name: cloudcommerce-secrets
                   key: JWT_SECRET
+          volumeMounts:
+            - name: secrets-store
+              mountPath: /mnt/secrets-store
+              readOnly: true
           resources:
             requests:
               cpu: 100m
@@ -58,3 +62,10 @@ spec:
               port: 3001
             initialDelaySeconds: 5
             periodSeconds: 10
+      volumes:
+        - name: secrets-store
+          csi:
+            driver: secrets-store.csi.k8s.io
+            readOnly: true
+            volumeAttributes:
+              secretProviderClass: azure-kv-secrets

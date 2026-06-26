@@ -16,7 +16,7 @@ variable "allowed_subnet_ids" {
   default     = []
 }
 variable "aks_identity_principal_id" {
-  description = "AKS managed identity principal ID for secrets access"
+  description = "Object ID for the AKS identity that reads Key Vault secrets"
   type        = string
   default     = ""
 }

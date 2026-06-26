@@ -165,13 +165,13 @@ npm run dev
 ### Infrastructure
 ```bash
 # Bootstrap Terraform state
-cd infrastructure/backend && terraform init && terraform apply
+cd infrastructure/terraform/backend-init && terraform init && terraform apply
 
 # Deploy dev environment
-cd infrastructure/environments/dev && terraform init && terraform apply
+cd infrastructure/terraform/environments/dev && terraform init && terraform apply
 
 # Get AKS credentials
-az aks get-credentials -g cloudcommerce-rg-dev -n cloudcommerce-aks-dev
+az aks get-credentials -g rg-cloudcommerce-dev -n aks-cloudcommerce-dev
 ```
 
 ### Application

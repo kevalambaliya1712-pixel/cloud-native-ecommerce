@@ -20,7 +20,7 @@ spec:
       serviceAccountName: cloudcommerce-sa
       containers:
         - name: notification-service
-          image: kevalacr123.azurecr.io/notification-service:v1
+          image: cloudcommerceacr.azurecr.io/notification-service:latest
           ports:
             - containerPort: 3005
           envFrom:

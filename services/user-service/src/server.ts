@@ -11,13 +11,13 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json());
 
-// Main Auth endpoints
-app.use('/', authRouter);
-
-// Health check
+// Health check (must be before authRouter to avoid potential route conflicts)
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'UP', service: 'User Service', timestamp: new Date() });
 });
+
+// Main Auth endpoints
+app.use('/', authRouter);
 
 app.listen(PORT, () => {
   console.log(`[User Service] Running on port ${PORT}`);
